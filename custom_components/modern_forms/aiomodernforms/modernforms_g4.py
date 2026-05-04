@@ -327,11 +327,11 @@ class ModernFormsDeviceG4:
             or wind_speed < WIND_SPEED_LOW_VALUE
             or wind_speed > WIND_SPEED_HIGH_VALUE
         ):
-            msg_0 = (
+            msg = (
                 f"wind_speed value must be between {WIND_SPEED_LOW_VALUE}"
                 f" and {WIND_SPEED_HIGH_VALUE}"
             )
-            raise ModernFormsInvalidSettingsError(msg_0)
+            raise ModernFormsInvalidSettingsError(msg)
 
         state: dict[str, Any] = {}
         if on is not None:

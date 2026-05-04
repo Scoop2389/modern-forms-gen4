@@ -265,12 +265,12 @@ class ModernFormsDevice:
             ):
                 commands[COMMAND_LIGHT_SLEEP_TIMER] = int(sleep.timestamp())
             else:
-                msg_0 = (
+                msg = (
                     "The time to sleep till must be a datetime object that is not more"
                     " then 24 hours into the future, or an interger for number of"
                     " seconds to sleep. 0 cancels the sleep timer."
                 )
-                raise ModernFormsInvalidSettingsError(msg_0)
+                raise ModernFormsInvalidSettingsError(msg)
 
         await self.request(commands=commands)
 
@@ -334,11 +334,11 @@ class ModernFormsDevice:
                 FAN_DIRECTION_FORWARD,
                 FAN_DIRECTION_REVERSE,
             ]:
-                msg_0 = (
+                msg = (
                     f"fan direction must be {FAN_DIRECTION_FORWARD}"
                     f" or {FAN_DIRECTION_REVERSE}"
                 )
-                raise ModernFormsInvalidSettingsError(msg_0)
+                raise ModernFormsInvalidSettingsError(msg)
             commands[COMMAND_FAN_DIRECTION] = direction
 
         if self._device is not None and self._device.has_wind():
@@ -348,11 +348,11 @@ class ModernFormsDevice:
                     or int(wind_speed) < WIND_SPEED_LOW_VALUE
                     or int(wind_speed) > WIND_SPEED_HIGH_VALUE
                 ):
-                    msg_0 = (
+                    msg = (
                         "wind_speed value must be between"
                         f" {WIND_SPEED_LOW_VALUE} and {WIND_SPEED_HIGH_VALUE}"
                     )
-                    raise ModernFormsInvalidSettingsError(msg_0)
+                    raise ModernFormsInvalidSettingsError(msg)
                 commands[COMMAND_WIND_SPEED] = wind_speed
 
             if wind is not None:
