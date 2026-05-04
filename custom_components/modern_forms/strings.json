@@ -35,12 +35,25 @@
     },
     "fan": {
       "fan": {
-        "name": "[%key:component::fan::title%]"
+        "name": "[%key:component::fan::title%]",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "Speed 1": "Speed 1",
+              "Speed 2": "Speed 2",
+              "Speed 3": "Speed 3",
+              "Speed 4": "Speed 4",
+              "Speed 5": "Speed 5",
+              "Speed 6": "Speed 6",
+              "Breeze": "Breeze"
+            }
+          }
+        }
       }
     },
     "light": {
-      "light": {
-        "name": "[%key:component::light::title%]"
+      "downlight": {
+        "name": "Downlight"
       }
     },
     "sensor": {

@@ -27,6 +27,7 @@ from .const import (
     STATE_FAN_SLEEP_TIMER,
     STATE_FAN_SPEED,
     STATE_LIGHT_BRIGHTNESS,
+    STATE_LIGHT_COLOR_TEMP,
     STATE_LIGHT_POWER,
     STATE_LIGHT_SLEEP_TIMER,
     STATE_WIND_POWER,
@@ -82,6 +83,7 @@ class State:
     fan_sleep_timer: int
     light_on: bool
     light_brightness: int
+    light_color_temp_kelvin: int | None
     light_sleep_timer: int
     away_mode_enabled: bool
     adaptive_learning_enabled: bool
@@ -98,6 +100,7 @@ class State:
             fan_sleep_timer=data.get(STATE_FAN_SLEEP_TIMER, 0),
             light_on=data.get(STATE_LIGHT_POWER, False),
             light_brightness=data.get(STATE_LIGHT_BRIGHTNESS, 100),
+            light_color_temp_kelvin=data.get(STATE_LIGHT_COLOR_TEMP),
             light_sleep_timer=data.get(STATE_LIGHT_SLEEP_TIMER, 0),
             away_mode_enabled=data.get(STATE_AWAY_MODE, False),
             adaptive_learning_enabled=data.get(STATE_ADAPTIVE_LEARNING, False),

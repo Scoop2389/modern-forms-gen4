@@ -5,6 +5,9 @@ DOMAIN = "modern_forms"
 OPT_ON = "on"
 OPT_SPEED = "speed"
 OPT_BRIGHTNESS = "brightness"
+OPT_COLOR_TEMP = "color_temp_kelvin"
+OPT_WIND = "wind"
+OPT_WIND_SPEED = "wind_speed"
 
 # Services
 SERVICE_SET_LIGHT_SLEEP_TIMER = "set_light_sleep_timer"

@@ -103,6 +103,10 @@ class ModernFormsDeviceAuto:
         """Change light state."""
         await self._client.light(**kwargs)  # type: ignore[union-attr]
 
+    def is_g4(self) -> bool:
+        """Return whether the device is a Generation 4 fan."""
+        return isinstance(self._client, ModernFormsDeviceG4)
+
     async def away(self, *, away: bool = False) -> None:
         """Set away mode."""
         await self._client.away(away=away)  # type: ignore[union-attr]

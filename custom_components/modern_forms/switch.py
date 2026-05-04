@@ -24,8 +24,10 @@ async def async_setup_entry(
 
     switches = [
         ModernFormsAwaySwitch(entry.entry_id, coordinator),
-        ModernFormsAdaptiveLearningSwitch(entry.entry_id, coordinator),
     ]
+    # Adaptive learning is not supported on G4 fans
+    if not coordinator.modern_forms.is_g4():
+        switches.append(ModernFormsAdaptiveLearningSwitch(entry.entry_id, coordinator))
     async_add_entities(switches)
 
 

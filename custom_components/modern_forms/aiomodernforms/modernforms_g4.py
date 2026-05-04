@@ -19,6 +19,8 @@ from .const import (
     FAN_SPEED_LOW_VALUE,
     LIGHT_BRIGHTNESS_HIGH_VALUE,
     LIGHT_BRIGHTNESS_LOW_VALUE,
+    LIGHT_COLOR_TEMP_MAX_KELVIN,
+    LIGHT_COLOR_TEMP_MIN_KELVIN,
     WIND_SPEED_HIGH_VALUE,
     WIND_SPEED_LOW_VALUE,
 )
@@ -222,6 +224,9 @@ class ModernFormsDeviceG4:
             state_data["lightOn"] = light_state.get("status", False)
             state_data["lightBrightness"] = brightness_pct
             state_data["lightSleepTimer"] = 0
+            # Color temperature in Kelvin (G4 native unit); None if not present
+            raw_cct = light_state.get("colorTemp")
+            state_data["lightColorTemp"] = raw_cct if isinstance(raw_cct, int) else None
         else:
             state_data["lightOn"] = False
             state_data["lightBrightness"] = 100
@@ -367,6 +372,7 @@ class ModernFormsDeviceG4:
         *,
         brightness: int | None = None,
         on: bool | None = None,
+        color_temp_kelvin: int | None = None,
         sleep: int | None = None,  # noqa: ARG002  # Not supported on G4; accepted for API compatibility
     ) -> None:
         """Change light state."""
@@ -387,12 +393,25 @@ class ModernFormsDeviceG4:
             )
             raise ModernFormsInvalidSettingsError(msg)
 
+        if color_temp_kelvin is not None and (
+            not isinstance(color_temp_kelvin, int)
+            or color_temp_kelvin < LIGHT_COLOR_TEMP_MIN_KELVIN
+            or color_temp_kelvin > LIGHT_COLOR_TEMP_MAX_KELVIN
+        ):
+            msg = (
+                f"color_temp_kelvin value must be between {LIGHT_COLOR_TEMP_MIN_KELVIN}"
+                f" and {LIGHT_COLOR_TEMP_MAX_KELVIN}"
+            )
+            raise ModernFormsInvalidSettingsError(msg)
+
         state: dict[str, Any] = {}
         if on is not None:
             state["status"] = on
         if brightness is not None:
             # Convert 1-100 to G4's 1-10000 scale
             state["level"] = max(1, min(10000, brightness * G4_BRIGHTNESS_SCALE))
+        if color_temp_kelvin is not None:
+            state["colorTemp"] = color_temp_kelvin
 
         if state:
             await self._request_fixture(
@@ -408,6 +427,8 @@ class ModernFormsDeviceG4:
             self._device.state.light_on = on  # type: ignore[union-attr]
         if brightness is not None:
             self._device.state.light_brightness = brightness  # type: ignore[union-attr]
+        if color_temp_kelvin is not None:
+            self._device.state.light_color_temp_kelvin = color_temp_kelvin  # type: ignore[union-attr]
 
     async def away(self, *, away: bool = False) -> None:
         """Set away mode via /device endpoint."""
