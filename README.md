@@ -1,46 +1,87 @@
-# Notice
+# Modern Forms (Gen4) — Home Assistant Custom Integration
 
-The component and platforms in this repository are not meant to be used by a
-user, but as a "blueprint" that custom component developers can build
-upon, to make more awesome stuff.
+This is a custom [Home Assistant](https://www.home-assistant.io/) integration for [Modern Forms](https://www.modernforms.com/) smart fans, with added support for **Generation 4** fans (e.g. the Radiant 56″) that are **not supported by the built-in HA integration**.
 
-HAVE FUN! 😎
+## Why this custom integration?
 
-## Why?
+The official Home Assistant `modern_forms` integration (and the underlying `aiomodernforms` library) uses the `/mf` REST endpoint, which only works on older fan firmware.  Generation 4 fans returned a **404 "This URI does not exist"** error on setup, making them completely unusable.
 
-This is simple, by having custom_components look (README + structure) the same
-it is easier for developers to help each other and for users to start using them.
+Generation 4 fans expose two new endpoints:
 
-If you are a developer and you want to add things to this "blueprint" that you think more
-developers will have use for, please open a PR to add it :)
+| Endpoint | Purpose |
+|---|---|
+| `POST /device` | Query/set device-level info and settings (device name, firmware, away mode, …) |
+| `POST /fixture` | Query or control individual fixtures (fan motor, downlight, uplight) |
 
-## What?
+This integration **auto-detects** which API to use:
 
-This repository contains multiple files, here is a overview:
+1. On first connection it probes the `/device` endpoint.
+2. If the device responds with `systemType` containing `"fan_g4"`, the G4 API is used.
+3. Otherwise the legacy `/mf` API is used, identical to the upstream integration.
 
-File | Purpose | Documentation
--- | -- | --
-`.devcontainer.json` | Used for development/testing with Visual Studio Code. | [Documentation](https://code.visualstudio.com/docs/remote/containers)
-`.github/ISSUE_TEMPLATE/*.yml` | Templates for the issue tracker | [Documentation](https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository)
-`custom_components/integration_blueprint/*` | Integration files, this is where everything happens. | [Documentation](https://developers.home-assistant.io/docs/creating_component_index)
-`CONTRIBUTING.md` | Guidelines on how to contribute. | [Documentation](https://help.github.com/en/github/building-a-strong-community/setting-guidelines-for-repository-contributors)
-`LICENSE` | The license file for the project. | [Documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/licensing-a-repository)
-`README.md` | The file you are reading now, should contain info about the integration, installation and configuration instructions. | [Documentation](https://help.github.com/en/github/writing-on-github/basic-writing-and-formatting-syntax)
-`requirements.txt` | Python packages used for development/lint/testing this integration. | [Documentation](https://pip.pypa.io/en/stable/user_guide/#requirements-files)
+There is no configuration required — the same UI setup flow works for both fan generations.
 
-## How?
+## Features
 
-1. Create a new repository in GitHub, using this repository as a template by clicking the "Use this template" button in the GitHub UI.
-1. Open your new repository in Visual Studio Code devcontainer (Preferably with the "`Dev Containers: Clone Repository in Named Container Volume...`" option).
-1. Rename all instances of the `integration_blueprint` to `custom_components/<your_integration_domain>` (e.g. `custom_components/awesome_integration`).
-1. Rename all instances of the `Integration Blueprint` to `<Your Integration Name>` (e.g. `Awesome Integration`).
-1. Run the `scripts/develop` to start HA and test out your new integration.
+| Feature | Legacy fans | Gen 4 fans |
+|---|---|---|
+| Fan on/off | ✅ | ✅ |
+| Fan speed (6 speeds) | ✅ | ✅ |
+| Fan direction | ✅ | ✅ |
+| Breeze / Wind mode | ✅ (if supported) | ✅ |
+| Light on/off | ✅ (if installed) | ✅ (auto-detected) |
+| Light brightness | ✅ | ✅ |
+| Away mode switch | ✅ | ✅ |
+| Adaptive learning switch | ✅ | — (not available on G4) |
+| Fan/Light sleep timers | ✅ | — (not available on G4) |
+| Zeroconf/mDNS discovery | ✅ | ✅ |
 
-## Next steps
+## G4 fixture address calculation
 
-These are some next steps you may want to look into:
-- Add tests to your integration, [`pytest-homeassistant-custom-component`](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component) can help you get started.
-- Add brand images (logo/icon).
-- Create your first release.
-- Share your integration on the [Home Assistant Forum](https://community.home-assistant.io/).
-- Submit your integration to [HACS](https://hacs.xyz/docs/publish/start).
+G4 fans address each fixture (fan motor, downlight, uplight) using a 32-bit integer derived from the device MAC address:
+
+```
+address = (type_byte << 24) | last_3_bytes_of_apMac
+```
+
+| Fixture | Type byte |
+|---|---|
+| Fan motor | `0x0D` |
+| Downlight | `0x05` |
+| Uplight | downlight + 1 |
+
+The `apMac` field is returned by the `/device` endpoint.
+
+## Installation via HACS
+
+1. Open **HACS** → **Integrations** → ⋮ → **Custom repositories**.
+2. Add `https://github.com/Scoop2389/modern-forms-gen4` as type **Integration**.
+3. Install **Modern Forms (Gen4)** and restart Home Assistant.
+4. Go to **Settings** → **Integrations** → **Add Integration** → search for **Modern Forms**.
+
+> **Note:** Because this integration uses the same `domain` (`modern_forms`) as the built-in integration, you must **disable or remove the built-in Modern Forms integration** before adding this one, otherwise there will be a conflict.
+
+## Manual installation
+
+1. Copy the `custom_components/modern_forms` folder to your HA `config/custom_components/` directory.
+2. Restart Home Assistant.
+3. Add the integration via the UI as above.
+
+## Differences from the upstream integration
+
+- The bundled `aiomodernforms` library has been extended with a `ModernFormsDeviceG4` class and a `ModernFormsDeviceAuto` wrapper that performs generation detection transparently.
+- No external PyPI package is required; the library is shipped inside the integration.
+- The `manifest.json` `version` field is set so HACS can track updates.
+
+## Supported fans
+
+Any Modern Forms fan that uses either the legacy `/mf` API or the new G4 `/device`+`/fixture` API should work.  Confirmed working:
+
+- All fans supported by the upstream integration (legacy API).
+- Generation 4 fans with `systemType: "fan_g4"` (e.g. Radiant FR-W2006-52 56″).
+
+## Credits
+
+Based on the official [Home Assistant `modern_forms` integration](https://www.home-assistant.io/integrations/modern_forms/) and the [aiomodernforms](https://github.com/wonderslug/aiomodernforms) library by [@wonderslug](https://github.com/wonderslug).
+
+G4 API reverse-engineered from PCAPDroid traffic captures documented in [HA core issue #169247](https://github.com/home-assistant/core/issues/169247).

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from aiomodernforms.const import LIGHT_POWER_OFF, LIGHT_POWER_ON
+from .aiomodernforms.const import LIGHT_POWER_OFF, LIGHT_POWER_ON
 import voluptuous as vol
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity

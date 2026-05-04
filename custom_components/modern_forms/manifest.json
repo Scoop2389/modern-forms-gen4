@@ -1,12 +1,13 @@
 {
   "domain": "modern_forms",
-  "name": "Modern Forms",
+  "name": "Modern Forms (Gen4)",
   "codeowners": ["@wonderslug"],
   "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/modern_forms",
+  "documentation": "https://github.com/Scoop2389/modern-forms-gen4",
   "iot_class": "local_polling",
   "loggers": ["aiomodernforms"],
-  "requirements": ["aiomodernforms==0.1.8"],
+  "requirements": [],
+  "version": "1.0.0",
   "zeroconf": [
     {
       "name": "wac*",

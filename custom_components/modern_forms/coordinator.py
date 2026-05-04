@@ -3,8 +3,8 @@
 from datetime import timedelta
 import logging
 
-from aiomodernforms import ModernFormsDevice, ModernFormsError
-from aiomodernforms.models import Device as ModernFormsDeviceState
+from .aiomodernforms import ModernFormsDeviceAuto as ModernFormsDevice, ModernFormsError
+from .aiomodernforms.models import Device as ModernFormsDeviceState
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
