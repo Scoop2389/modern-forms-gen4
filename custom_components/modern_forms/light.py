@@ -1,20 +1,17 @@
 """Support for Modern Forms Fan lights."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
-from .aiomodernforms.const import LIGHT_POWER_OFF, LIGHT_POWER_ON
 import voluptuous as vol
-
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.percentage import (
     percentage_to_ranged_value,
     ranged_value_to_percentage,
 )
 
 from . import modernforms_exception_handler
+from .aiomodernforms.const import LIGHT_POWER_OFF, LIGHT_POWER_ON
 from .const import (
     ATTR_SLEEP_TIME,
     CLEAR_TIMER,
@@ -23,19 +20,23 @@ from .const import (
     SERVICE_CLEAR_LIGHT_SLEEP_TIMER,
     SERVICE_SET_LIGHT_SLEEP_TIMER,
 )
-from .coordinator import ModernFormsConfigEntry, ModernFormsDataUpdateCoordinator
 from .entity import ModernFormsDeviceEntity
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import ModernFormsConfigEntry, ModernFormsDataUpdateCoordinator
 
 BRIGHTNESS_RANGE = (1, 255)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     config_entry: ModernFormsConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up a Modern Forms platform from config entry."""
-
     coordinator = config_entry.runtime_data
 
     # if no light unit installed no light entity
@@ -73,7 +74,7 @@ class ModernFormsLightEntity(ModernFormsDeviceEntity, LightEntity):
     """Defines a Modern Forms light."""
 
     _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+    _attr_supported_color_modes: ClassVar[set[ColorMode]] = {ColorMode.BRIGHTNESS}
     _attr_translation_key = "light"
 
     def __init__(
@@ -101,12 +102,12 @@ class ModernFormsLightEntity(ModernFormsDeviceEntity, LightEntity):
         return bool(self.coordinator.data.state.light_on)
 
     @modernforms_exception_handler
-    async def async_turn_off(self, **kwargs: Any) -> None:
+    async def async_turn_off(self, **_kwargs: Any) -> None:
         """Turn off the light."""
         await self.coordinator.modern_forms.light(on=LIGHT_POWER_OFF)
 
     @modernforms_exception_handler
-    async def async_turn_on(self, **kwargs: Any) -> None:
+    async def async_turn_on(self, **_kwargs: Any) -> None:
         """Turn on the light."""
         data = {OPT_ON: LIGHT_POWER_ON}
 

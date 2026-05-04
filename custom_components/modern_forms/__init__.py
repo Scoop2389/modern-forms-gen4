@@ -1,16 +1,18 @@
 """The Modern Forms integration."""
 
-from collections.abc import Callable, Coroutine
 import logging
-from typing import Any, Concatenate
-
-from .aiomodernforms import ModernFormsConnectionError, ModernFormsError
+from typing import TYPE_CHECKING, Any, Concatenate
 
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
 
+from .aiomodernforms import ModernFormsConnectionError, ModernFormsError
 from .coordinator import ModernFormsConfigEntry, ModernFormsDataUpdateCoordinator
 from .entity import ModernFormsDeviceEntity
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
+
+    from homeassistant.core import HomeAssistant
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
@@ -24,7 +26,6 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ModernFormsConfigEntry) -> bool:
     """Set up a Modern Forms device from a config entry."""
-
     # Create Modern Forms instance for this entry
     coordinator = ModernFormsDataUpdateCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
@@ -45,30 +46,31 @@ async def async_unload_entry(
 
 
 def modernforms_exception_handler[
-    _ModernFormsDeviceEntityT: ModernFormsDeviceEntity,
-    **_P,
+    ModernFormsDeviceEntityT: ModernFormsDeviceEntity,
+    **P,
 ](
-    func: Callable[Concatenate[_ModernFormsDeviceEntityT, _P], Any],
-) -> Callable[Concatenate[_ModernFormsDeviceEntityT, _P], Coroutine[Any, Any, None]]:
-    """Decorate Modern Forms calls to handle Modern Forms exceptions.
+    func: Callable[Concatenate[ModernFormsDeviceEntityT, P], Any],
+) -> Callable[Concatenate[ModernFormsDeviceEntityT, P], Coroutine[Any, Any, None]]:
+    """
+    Decorate Modern Forms calls to handle Modern Forms exceptions.
 
     A decorator that wraps the passed in function, catches Modern Forms errors,
     and handles the availability of the device in the data coordinator.
     """
 
     async def handler(
-        self: _ModernFormsDeviceEntityT, *args: _P.args, **kwargs: _P.kwargs
+        self: ModernFormsDeviceEntityT, *args: P.args, **kwargs: P.kwargs
     ) -> None:
         try:
             await func(self, *args, **kwargs)
             self.coordinator.async_update_listeners()
 
-        except ModernFormsConnectionError as error:
-            _LOGGER.error("Error communicating with API: %s", error)
+        except ModernFormsConnectionError:
+            _LOGGER.exception("Error communicating with API")
             self.coordinator.last_update_success = False
             self.coordinator.async_update_listeners()
 
-        except ModernFormsError as error:
-            _LOGGER.error("Invalid response from API: %s", error)
+        except ModernFormsError:
+            _LOGGER.exception("Invalid response from API")
 
     return handler

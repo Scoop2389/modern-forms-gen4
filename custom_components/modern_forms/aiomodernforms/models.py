@@ -1,8 +1,9 @@
 """Models for Async IO Modern Forms."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 from .const import (
     DEFAULT_WIND_SPEED,
@@ -52,7 +53,7 @@ class Info:
     firmware_url: str
 
     @staticmethod
-    def from_dict(data: Dict[str, Any]) -> Info:
+    def from_dict(data: dict[str, Any]) -> Info:
         """Return Info object from Modern Forms API response."""
         return Info(
             client_id=data.get(INFO_CLIENT_ID, ""),
@@ -88,7 +89,7 @@ class State:
     wind_speed: int
 
     @staticmethod
-    def from_dict(data: Dict[str, Any]) -> State:
+    def from_dict(data: dict[str, Any]) -> State:
         """Return State object from Modern Forms API response."""
         return State(
             fan_on=data.get(STATE_FAN_POWER, False),
@@ -100,7 +101,7 @@ class State:
             light_sleep_timer=data.get(STATE_LIGHT_SLEEP_TIMER, 0),
             away_mode_enabled=data.get(STATE_AWAY_MODE, False),
             adaptive_learning_enabled=data.get(STATE_ADAPTIVE_LEARNING, False),
-            wind=data.get(STATE_WIND_POWER, None),
+            wind=data.get(STATE_WIND_POWER),
             wind_speed=data.get(STATE_WIND_SPEED, DEFAULT_WIND_SPEED),
         )
 
@@ -111,13 +112,13 @@ class Device:
     info: Info
     state: State
 
-    def __init__(self, state_data: dict, info_data: dict):
+    def __init__(self, state_data: dict, info_data: dict) -> None:
         """Initialize an empty Modern Forms device class."""
         self.update_from_dict(state_data=state_data, info_data=info_data)
 
     def update_from_dict(
-        self, state_data: dict = None, info_data: dict = None
-    ) -> "Device":
+        self, state_data: dict | None = None, info_data: dict | None = None
+    ) -> Device:
         """Update the device status with the passed dict."""
         if state_data is not None:
             self.state = State.from_dict(state_data)

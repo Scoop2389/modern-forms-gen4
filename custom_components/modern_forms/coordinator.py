@@ -1,18 +1,21 @@
 """Coordinator for the Modern Forms integration."""
 
-from datetime import timedelta
 import logging
-
-from .aiomodernforms import ModernFormsDeviceAuto as ModernFormsDevice, ModernFormsError
-from .aiomodernforms.models import Device as ModernFormsDeviceState
+from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .aiomodernforms import ModernFormsDeviceAuto as ModernFormsDevice
+from .aiomodernforms import ModernFormsError
+from .aiomodernforms.models import Device as ModernFormsDeviceState
 from .const import DOMAIN
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 SCAN_INTERVAL = timedelta(seconds=5)
 _LOGGER = logging.getLogger(__name__)
@@ -51,4 +54,5 @@ class ModernFormsDataUpdateCoordinator(DataUpdateCoordinator[ModernFormsDeviceSt
                 full_update=not self.last_update_success
             )
         except ModernFormsError as error:
-            raise UpdateFailed(f"Invalid response from API: {error}") from error
+            msg = f"Invalid response from API: {error}"
+            raise UpdateFailed(msg) from error

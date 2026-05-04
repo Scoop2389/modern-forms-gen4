@@ -1,10 +1,10 @@
 """Async IO client for Generation 4 Modern Forms fans."""
+
 from __future__ import annotations
 
-import asyncio
 import json
 import socket
-from typing import Any, Dict, Optional
+from typing import Any, Self
 
 import aiohttp
 import async_timeout
@@ -51,7 +51,8 @@ G4_SYSTEM_TYPES = {"fan_g4"}
 
 
 def _compute_g4_fixture_addrs(ap_mac: str) -> tuple[int, int, int]:
-    """Compute G4 fixture addresses from the AP MAC address.
+    """
+    Compute G4 fixture addresses from the AP MAC address.
 
     Address format: (type_byte << 24) | last_3_mac_bytes
     - Fan:       type_byte=0x0D
@@ -69,14 +70,15 @@ def _compute_g4_fixture_addrs(ap_mac: str) -> tuple[int, int, int]:
 class ModernFormsDeviceG4:
     """Generation 4 Modern Forms device using /device and /fixture endpoints."""
 
-    _device: Optional[Device] = None
+    _device: Device | None = None
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         host: str,
         port: int = DEFAULT_PORT,
         request_timeout: float = DEFAULT_TIMEOUT_SECS,
         session: aiohttp.client.ClientSession = None,
+        *,
         tls: bool = False,
         verify_ssl: bool = True,
     ) -> None:
@@ -89,10 +91,10 @@ class ModernFormsDeviceG4:
         self._tls = tls
         self._verify_ssl = verify_ssl
 
-        self._fan_addr: Optional[int] = None
-        self._downlight_addr: Optional[int] = None
-        self._uplight_addr: Optional[int] = None
-        self._has_downlight: Optional[bool] = None
+        self._fan_addr: int | None = None
+        self._downlight_addr: int | None = None
+        self._uplight_addr: int | None = None
+        self._has_downlight: bool | None = None
 
     async def _raw_request(self, endpoint: str, payload: dict) -> Any:
         """Make a POST request to a G4 endpoint."""
@@ -117,16 +119,18 @@ class ModernFormsDeviceG4:
                     headers=headers,
                     ssl=self._verify_ssl,
                 )
-        except asyncio.TimeoutError as exception:
-            raise ModernFormsConnectionTimeoutError(
+        except TimeoutError as exception:
+            msg = (
                 "Timeout occurred while connecting to Modern Forms device at"
                 f" {self._host}"
-            ) from exception
+            )
+            raise ModernFormsConnectionTimeoutError(msg) from exception
         except (aiohttp.ClientError, socket.gaierror) as exception:
-            raise ModernFormsConnectionError(
+            msg = (
                 "Error occurred while communicating with Modern Forms device at"
                 f" {self._host}"
-            ) from exception
+            )
+            raise ModernFormsConnectionError(msg) from exception
 
         content_type = response.headers.get("Content-Type", "")
         if (response.status // 100) in [4, 5]:
@@ -143,9 +147,8 @@ class ModernFormsDeviceG4:
         data = await response.json()
 
         if not data:
-            raise ModernFormsEmptyResponseError(
-                f"Modern Forms G4 device at {self._host} returned an empty response"
-            )
+            msg = f"Modern Forms G4 device at {self._host} returned an empty response"
+            raise ModernFormsEmptyResponseError(msg)
 
         return data
 
@@ -161,13 +164,13 @@ class ModernFormsDeviceG4:
         self,
         device_data: dict,
         fan_fixture: dict,
-        light_fixture: Optional[dict],
+        light_fixture: dict | None,
     ) -> tuple[dict, dict]:
         """Build state_data and info_data dicts using legacy API key names."""
         fan_state = fan_fixture.get("state", {})
 
         # Map to legacy Info keys
-        info_data: Dict[str, Any] = {
+        info_data: dict[str, Any] = {
             "mac": device_data.get("staMac", device_data.get("apMac", "")),
             "deviceName": device_data.get("deviceName", ""),
             "fanType": device_data.get("deviceModel", ""),
@@ -187,13 +190,15 @@ class ModernFormsDeviceG4:
 
         # fanDirection: G4 boolean (false=forward, true=reverse) → legacy string
         raw_direction = fan_state.get("fanDirection", False)
-        fan_direction = FAN_DIRECTION_REVERSE if raw_direction else FAN_DIRECTION_FORWARD
+        fan_direction = (
+            FAN_DIRECTION_REVERSE if raw_direction else FAN_DIRECTION_FORWARD
+        )
 
         # wind: only include if present in fixture state
         wind_value = fan_state.get("wind")
 
         # Map to legacy State keys
-        state_data: Dict[str, Any] = {
+        state_data: dict[str, Any] = {
             "fanOn": fan_state.get("status", False),
             "fanSpeed": fan_state.get("fanSpeed", 1),
             "fanDirection": fan_direction,
@@ -220,7 +225,7 @@ class ModernFormsDeviceG4:
 
         return state_data, info_data
 
-    async def update(self, full_update: bool = False) -> Device:
+    async def update(self, *, full_update: bool = False) -> Device:
         """Get all information about the G4 device in a single call."""
         device_data = await self._request_device({"query": True})
 
@@ -253,7 +258,7 @@ class ModernFormsDeviceG4:
         )
 
         # Probe for light on first update
-        light_fixture: Optional[dict] = None
+        light_fixture: dict | None = None
         if self._has_downlight is None:
             try:
                 light_fixture = await self._request_fixture(
@@ -281,49 +286,50 @@ class ModernFormsDeviceG4:
     async def fan(
         self,
         *,
-        on: Optional[bool] = None,
-        speed: Optional[int] = None,
-        direction: Optional[str] = None,
-        wind: Optional[bool] = None,
-        wind_speed: Optional[int] = None,
-        sleep: Optional[int] = None,  # Not supported on G4; accepted for API compatibility
+        on: bool | None = None,
+        speed: int | None = None,
+        direction: str | None = None,
+        wind: bool | None = None,
+        wind_speed: int | None = None,
+        sleep: int | None = None,  # Not supported on G4; accepted for API compatibility
     ) -> None:
         """Change fan state."""
         if self._device is None:
             await self.update()
 
-        if speed is not None:
-            if (
-                not isinstance(speed, int)
-                or speed < FAN_SPEED_LOW_VALUE
-                or speed > FAN_SPEED_HIGH_VALUE
-            ):
-                raise ModernFormsInvalidSettingsError(
-                    f"speed value must be between {FAN_SPEED_LOW_VALUE}"
-                    f" and {FAN_SPEED_HIGH_VALUE}"
-                )
+        if speed is not None and (
+            not isinstance(speed, int)
+            or speed < FAN_SPEED_LOW_VALUE
+            or speed > FAN_SPEED_HIGH_VALUE
+        ):
+            msg = (
+                f"speed value must be between {FAN_SPEED_LOW_VALUE}"
+                f" and {FAN_SPEED_HIGH_VALUE}"
+            )
+            raise ModernFormsInvalidSettingsError(msg)
 
         if direction is not None and direction not in [
             FAN_DIRECTION_FORWARD,
             FAN_DIRECTION_REVERSE,
         ]:
-            raise ModernFormsInvalidSettingsError(
+            msg = (
                 f"fan direction must be {FAN_DIRECTION_FORWARD}"
                 f" or {FAN_DIRECTION_REVERSE}"
             )
+            raise ModernFormsInvalidSettingsError(msg)
 
-        if wind_speed is not None:
-            if (
-                not isinstance(wind_speed, int)
-                or wind_speed < WIND_SPEED_LOW_VALUE
-                or wind_speed > WIND_SPEED_HIGH_VALUE
-            ):
-                raise ModernFormsInvalidSettingsError(
-                    f"wind_speed value must be between {WIND_SPEED_LOW_VALUE}"
-                    f" and {WIND_SPEED_HIGH_VALUE}"
-                )
+        if wind_speed is not None and (
+            not isinstance(wind_speed, int)
+            or wind_speed < WIND_SPEED_LOW_VALUE
+            or wind_speed > WIND_SPEED_HIGH_VALUE
+        ):
+            msg_0 = (
+                f"wind_speed value must be between {WIND_SPEED_LOW_VALUE}"
+                f" and {WIND_SPEED_HIGH_VALUE}"
+            )
+            raise ModernFormsInvalidSettingsError(msg_0)
 
-        state: Dict[str, Any] = {}
+        state: dict[str, Any] = {}
         if on is not None:
             state["status"] = on
         if speed is not None:
@@ -355,9 +361,9 @@ class ModernFormsDeviceG4:
     async def light(
         self,
         *,
-        brightness: Optional[int] = None,
-        on: Optional[bool] = None,
-        sleep: Optional[int] = None,  # Not supported on G4; accepted for API compatibility
+        brightness: int | None = None,
+        on: bool | None = None,
+        sleep: int | None = None,  # Not supported on G4; accepted for API compatibility
     ) -> None:
         """Change light state."""
         if self._device is None:
@@ -366,18 +372,18 @@ class ModernFormsDeviceG4:
         if not self._has_downlight:
             return
 
-        if brightness is not None:
-            if (
-                not isinstance(brightness, int)
-                or brightness < LIGHT_BRIGHTNESS_LOW_VALUE
-                or brightness > LIGHT_BRIGHTNESS_HIGH_VALUE
-            ):
-                raise ModernFormsInvalidSettingsError(
-                    f"brightness value must be between {LIGHT_BRIGHTNESS_LOW_VALUE}"
-                    f" and {LIGHT_BRIGHTNESS_HIGH_VALUE}"
-                )
+        if brightness is not None and (
+            not isinstance(brightness, int)
+            or brightness < LIGHT_BRIGHTNESS_LOW_VALUE
+            or brightness > LIGHT_BRIGHTNESS_HIGH_VALUE
+        ):
+            msg = (
+                f"brightness value must be between {LIGHT_BRIGHTNESS_LOW_VALUE}"
+                f" and {LIGHT_BRIGHTNESS_HIGH_VALUE}"
+            )
+            raise ModernFormsInvalidSettingsError(msg)
 
-        state: Dict[str, Any] = {}
+        state: dict[str, Any] = {}
         if on is not None:
             state["status"] = on
         if brightness is not None:
@@ -420,30 +426,33 @@ class ModernFormsDeviceG4:
     def has_breeze_mode(self) -> bool:
         """See if the fan has Breeze/Wind mode."""
         if self._device is None:
-            raise ModernFormsNotInitializedError(
+            msg = (
                 "The device has not been initialized. "
                 "Please run update on the device before getting state"
             )
+            raise ModernFormsNotInitializedError(msg)
         return self._device.has_wind()
 
     @property
     def status(self):
         """Return fan state."""
         if self._device is None:
-            raise ModernFormsNotInitializedError(
+            msg = (
                 "The device has not been initialized. "
                 "Please run update on the device before getting state"
             )
+            raise ModernFormsNotInitializedError(msg)
         return self._device.state
 
     @property
     def info(self):
         """Return fan info."""
         if self._device is None:
-            raise ModernFormsNotInitializedError(
+            msg = (
                 "The device has not been initialized. "
                 "Please run update on the device before getting info"
             )
+            raise ModernFormsNotInitializedError(msg)
         return self._device.info
 
     async def close(self) -> None:
@@ -451,7 +460,7 @@ class ModernFormsDeviceG4:
         if self._session and self._close_session:
             await self._session.close()
 
-    async def __aenter__(self) -> "ModernFormsDeviceG4":
+    async def __aenter__(self) -> Self:
         """Async enter."""
         return self
 
