@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from aiomodernforms import ModernFormsConnectionError, ModernFormsDevice
+from .aiomodernforms import ModernFormsConnectionError, ModernFormsDeviceAuto as ModernFormsDevice
 import voluptuous as vol
 
 from homeassistant.config_entries import SOURCE_ZEROCONF, ConfigFlow, ConfigFlowResult

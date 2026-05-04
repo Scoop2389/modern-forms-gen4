@@ -4,7 +4,7 @@ from collections.abc import Callable, Coroutine
 import logging
 from typing import Any, Concatenate
 
-from aiomodernforms import ModernFormsConnectionError, ModernFormsError
+from .aiomodernforms import ModernFormsConnectionError, ModernFormsError
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant

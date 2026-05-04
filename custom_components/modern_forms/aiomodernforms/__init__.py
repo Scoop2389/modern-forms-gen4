@@ -1,4 +1,4 @@
-"""Asynchronous Python client for Modern Forms fans."""
+"""Asynchronous Python client for Modern Forms fans (bundled, with G4 support)."""
 from .const import (  # noqa
     ADAPTIVE_LEARNING_OFF,
     ADAPTIVE_LEARNING_ON,
@@ -41,3 +41,5 @@ from .exceptions import (  # noqa
     ModernFormsNotInitializedError,
 )
 from .modernforms import ModernFormsDevice  # noqa
+from .modernforms_g4 import ModernFormsDeviceG4  # noqa
+from .modernforms_auto import ModernFormsDeviceAuto  # noqa

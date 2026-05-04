@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from aiomodernforms.const import FAN_POWER_OFF, FAN_POWER_ON
+from .aiomodernforms.const import FAN_POWER_OFF, FAN_POWER_ON
 import voluptuous as vol
 
 from homeassistant.components.fan import FanEntity, FanEntityFeature
