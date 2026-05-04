@@ -1,5 +1,6 @@
 """Asynchronous Python client for Modern Forms fans (bundled, with G4 support)."""
-from .const import (  # noqa
+
+from .const import (  # noqa: F401
     ADAPTIVE_LEARNING_OFF,
     ADAPTIVE_LEARNING_ON,
     AWAY_MODE_OFF,
@@ -32,7 +33,7 @@ from .const import (  # noqa
     WIND_SPEED_HIGH_VALUE,
     WIND_SPEED_LOW_VALUE,
 )
-from .exceptions import (  # noqa
+from .exceptions import (  # noqa: F401
     ModernFormsConnectionError,
     ModernFormsConnectionTimeoutError,
     ModernFormsEmptyResponseError,
@@ -40,6 +41,6 @@ from .exceptions import (  # noqa
     ModernFormsInvalidSettingsError,
     ModernFormsNotInitializedError,
 )
-from .modernforms import ModernFormsDevice  # noqa
-from .modernforms_g4 import ModernFormsDeviceG4  # noqa
-from .modernforms_auto import ModernFormsDeviceAuto  # noqa
+from .modernforms import ModernFormsDevice  # noqa: F401
+from .modernforms_auto import ModernFormsDeviceAuto  # noqa: F401
+from .modernforms_g4 import ModernFormsDeviceG4  # noqa: F401

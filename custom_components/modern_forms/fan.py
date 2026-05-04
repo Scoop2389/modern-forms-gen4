@@ -1,14 +1,10 @@
 """Support for Modern Forms Fan Fans."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .aiomodernforms.const import FAN_POWER_OFF, FAN_POWER_ON
 import voluptuous as vol
-
 from homeassistant.components.fan import FanEntity, FanEntityFeature
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.percentage import (
     percentage_to_ranged_value,
     ranged_value_to_percentage,
@@ -16,6 +12,7 @@ from homeassistant.util.percentage import (
 from homeassistant.util.scaling import int_states_in_range
 
 from . import modernforms_exception_handler
+from .aiomodernforms.const import FAN_POWER_OFF, FAN_POWER_ON
 from .const import (
     ATTR_SLEEP_TIME,
     CLEAR_TIMER,
@@ -24,17 +21,21 @@ from .const import (
     SERVICE_CLEAR_FAN_SLEEP_TIMER,
     SERVICE_SET_FAN_SLEEP_TIMER,
 )
-from .coordinator import ModernFormsConfigEntry, ModernFormsDataUpdateCoordinator
 from .entity import ModernFormsDeviceEntity
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import ModernFormsConfigEntry, ModernFormsDataUpdateCoordinator
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     config_entry: ModernFormsConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up a Modern Forms platform from config entry."""
-
     coordinator = config_entry.runtime_data
 
     platform = entity_platform.async_get_current_platform()
@@ -125,8 +126,8 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
     async def async_turn_on(
         self,
         percentage: int | None = None,
-        preset_mode: str | None = None,
-        **kwargs: Any,
+        _preset_mode: str | None = None,
+        **_kwargs: Any,
     ) -> None:
         """Turn on the fan."""
         data = {OPT_ON: FAN_POWER_ON}
@@ -138,7 +139,7 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
         await self.coordinator.modern_forms.fan(**data)
 
     @modernforms_exception_handler
-    async def async_turn_off(self, **kwargs: Any) -> None:
+    async def async_turn_off(self, **_kwargs: Any) -> None:
         """Turn the fan off."""
         await self.coordinator.modern_forms.fan(on=FAN_POWER_OFF)
 

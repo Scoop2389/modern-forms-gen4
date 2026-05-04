@@ -1,16 +1,18 @@
 """Config flow for Modern Forms."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .aiomodernforms import ModernFormsConnectionError, ModernFormsDeviceAuto as ModernFormsDevice
 import voluptuous as vol
-
 from homeassistant.config_entries import SOURCE_ZEROCONF, ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_MAC
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
+from .aiomodernforms import ModernFormsConnectionError
+from .aiomodernforms import ModernFormsDeviceAuto as ModernFormsDevice
 from .const import DOMAIN
+
+if TYPE_CHECKING:
+    from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 USER_SCHEMA = vol.Schema({vol.Required(CONF_HOST): str})
 
@@ -50,16 +52,16 @@ class ModernFormsFlowHandler(ConfigFlow, domain=DOMAIN):
 
         # Loop through self._handle_config_flow to ensure we load the
         # MAC if it is missing, and abort if already configured
-        return await self._handle_config_flow(True)
+        return await self._handle_config_flow(initial_zeroconf=True)
 
     async def async_step_zeroconf_confirm(
-        self, user_input: dict[str, Any] | None = None
+        self, _user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle a flow initiated by zeroconf."""
         return await self._handle_config_flow()
 
     async def _handle_config_flow(
-        self, initial_zeroconf: bool = False
+        self, *, initial_zeroconf: bool = False
     ) -> ConfigFlowResult:
         """Config flow handler for ModernForms."""
         if self.mac is None or not initial_zeroconf:

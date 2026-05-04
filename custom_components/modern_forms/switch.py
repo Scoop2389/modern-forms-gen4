@@ -1,18 +1,21 @@
 """Support for Modern Forms switches."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import modernforms_exception_handler
-from .coordinator import ModernFormsConfigEntry, ModernFormsDataUpdateCoordinator
 from .entity import ModernFormsDeviceEntity
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import ModernFormsConfigEntry, ModernFormsDataUpdateCoordinator
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     entry: ModernFormsConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
@@ -63,12 +66,12 @@ class ModernFormsAwaySwitch(ModernFormsSwitch):
         return bool(self.coordinator.data.state.away_mode_enabled)
 
     @modernforms_exception_handler
-    async def async_turn_off(self, **kwargs: Any) -> None:
+    async def async_turn_off(self, **_kwargs: Any) -> None:
         """Turn off the Modern Forms Away mode switch."""
         await self.coordinator.modern_forms.away(away=False)
 
     @modernforms_exception_handler
-    async def async_turn_on(self, **kwargs: Any) -> None:
+    async def async_turn_on(self, **_kwargs: Any) -> None:
         """Turn on the Modern Forms Away mode switch."""
         await self.coordinator.modern_forms.away(away=True)
 
@@ -94,11 +97,11 @@ class ModernFormsAdaptiveLearningSwitch(ModernFormsSwitch):
         return bool(self.coordinator.data.state.adaptive_learning_enabled)
 
     @modernforms_exception_handler
-    async def async_turn_off(self, **kwargs: Any) -> None:
+    async def async_turn_off(self, **_kwargs: Any) -> None:
         """Turn off the Modern Forms Adaptive Learning switch."""
         await self.coordinator.modern_forms.adaptive_learning(adaptive_learning=False)
 
     @modernforms_exception_handler
-    async def async_turn_on(self, **kwargs: Any) -> None:
+    async def async_turn_on(self, **_kwargs: Any) -> None:
         """Turn on the Modern Forms Adaptive Learning switch."""
         await self.coordinator.modern_forms.adaptive_learning(adaptive_learning=True)

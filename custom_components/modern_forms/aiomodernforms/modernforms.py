@@ -1,15 +1,16 @@
 """Async IO client library for Modern Forms fans."""
+
 from __future__ import annotations
 
-import asyncio
+import contextlib
 import json
 import socket
-from datetime import datetime, timedelta
-from typing import Any, Dict, Optional, Union
+from datetime import UTC, datetime, timedelta
+from typing import Any, Self
 
 import aiohttp
 import async_timeout
-import backoff  # type: ignore
+import backoff  # type: ignore[import-untyped]
 from yarl import URL
 
 from .__version__ import __version__
@@ -49,15 +50,15 @@ from .exceptions import (
     ModernFormsInvalidSettingsError,
     ModernFormsNotInitializedError,
 )
-from .models import Device
+from .models import Device, Info, State
 
 
 class ModernFormsDevice:
     """Modern Forms device reppresentation."""
 
-    _device: Optional[Device] = None
+    _device: Device | None = None
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         host: str,
         port: int = DEFAULT_PORT,
@@ -66,9 +67,10 @@ class ModernFormsDevice:
         password: str = "",
         request_timeout: float = DEFAULT_TIMEOUT_SECS,
         session: aiohttp.client.ClientSession = None,
+        *,
         tls: bool = False,
         verify_ssl: bool = True,
-        user_agent: str = None,  # type: ignore
+        user_agent: str | None = None,
     ) -> None:
         """Initialize connection with Modern Forms Fan."""
         self._session = session
@@ -95,15 +97,16 @@ class ModernFormsDevice:
     @backoff.on_exception(
         backoff.expo, ModernFormsEmptyResponseError, max_tries=3, logger=None
     )
-    async def update(self, full_update: bool = False) -> Device:
+    async def update(self, *, full_update: bool = False) -> Device:
         """Get all information about the device in a single call."""
         info_data = await self._request({COMMAND_QUERY_STATIC_DATA: True})
         state_data = await self._request()
         if not state_data:
-            raise ModernFormsEmptyResponseError(
+            msg = (
                 f"Modern Forms device at {self._host}"
-                + " returned an empty API response on full update"
+                " returned an empty API response on full update"
             )
+            raise ModernFormsEmptyResponseError(msg)
         if self._device is None or full_update:
             self._device = Device(state_data=state_data, info_data=info_data)
         self._device.update_from_dict(state_data=state_data)
@@ -112,7 +115,7 @@ class ModernFormsDevice:
     @backoff.on_exception(
         backoff.expo, ModernFormsConnectionError, max_tries=3, logger=None
     )
-    async def _request(self, commands: Optional[dict] = None) -> Any:
+    async def _request(self, commands: dict | None = None) -> Any:
         """Handle a request to a Modern Forms Fan device."""
         scheme = "https" if self._tls else "http"
         url = URL.build(
@@ -149,16 +152,18 @@ class ModernFormsDevice:
                     headers=headers,
                     ssl=self._verify_ssl,
                 )
-        except asyncio.TimeoutError as exception:
-            raise ModernFormsConnectionTimeoutError(
+        except TimeoutError as exception:
+            msg = (
                 "Timeout occurred while connecting to Modern Forms device at"
-                + f" {self._host}"
-            ) from exception
+                f" {self._host}"
+            )
+            raise ModernFormsConnectionTimeoutError(msg) from exception
         except (aiohttp.ClientError, socket.gaierror) as exception:
-            raise ModernFormsConnectionError(
+            msg = (
                 "Error occurred while communicating with Modern Forms device at"
-                + f" {self._host}"
-            ) from exception
+                f" {self._host}"
+            )
+            raise ModernFormsConnectionError(msg) from exception
 
         content_type = response.headers.get("Content-Type", "")
         if (response.status // 100) in [4, 5]:
@@ -173,55 +178,57 @@ class ModernFormsDevice:
                 response.status, {"message": contents.decode("utf8")}
             )
 
-        data = await response.json()
-        return data
+        return await response.json()
 
-    async def request(self, commands: Optional[dict] = None):
+    async def request(self, commands: dict | None = None) -> State:
         """Issue one or more commands to the Modern Forms fan."""
         if self._device is None:
             await self.update()
         data = await self._request(commands=commands)
-        self._device.update_from_dict(state_data=data)  # type: ignore
-        return self._device.state  # type: ignore
+        self._device.update_from_dict(state_data=data)  # type: ignore[union-attr]
+        return self._device.state  # type: ignore[union-attr]
 
     @property
-    def status(self):
+    def status(self) -> State:
         """Fan get status."""
         if self._device is None:
-            raise ModernFormsNotInitializedError(
+            msg = (
                 "The device has not been initialized.  "
-                + "Please run update on the device before getting state"
+                "Please run update on the device before getting state"
             )
+            raise ModernFormsNotInitializedError(msg)
         return self._device.state
 
     @property
-    def info(self):
+    def info(self) -> Info:
         """Fan get info."""
         if self._device is None:
-            raise ModernFormsNotInitializedError(
+            msg = (
                 "The device has not been initialized.  "
-                + "Please run update on the device before getting info"
+                "Please run update on the device before getting info"
             )
+            raise ModernFormsNotInitializedError(msg)
         return self._device.info
 
-    def has_breeze_mode(self):
+    def has_breeze_mode(self) -> bool:
         """See if the Fan has Breeze Mode."""
         if self._device is None:
-            raise ModernFormsNotInitializedError(
+            msg = (
                 "The device has not been initialized.  "
-                + "Please run update on the device before getting state"
+                "Please run update on the device before getting state"
             )
+            raise ModernFormsNotInitializedError(msg)
         return self._device.has_wind()
 
     async def light(
         self,
         *,
-        brightness: Optional[int] = None,
-        on: Optional[bool] = None,
-        sleep: Optional[Union[int, datetime]] = None,
-    ):
+        brightness: int | None = None,
+        on: bool | None = None,
+        sleep: int | datetime | None = None,
+    ) -> None:
         """Change Fans Light state."""
-        commands: Dict[str, Union[bool, int]] = {}
+        commands: dict[str, bool | int] = {}
 
         if brightness is not None:
             if (
@@ -229,16 +236,18 @@ class ModernFormsDevice:
                 or int(brightness) < LIGHT_BRIGHTNESS_LOW_VALUE
                 or int(brightness) > LIGHT_BRIGHTNESS_HIGH_VALUE
             ):
-                raise ModernFormsInvalidSettingsError(
+                msg = (
                     "brightness value must be between"
-                    + f" {LIGHT_BRIGHTNESS_LOW_VALUE} and {LIGHT_BRIGHTNESS_HIGH_VALUE}"
+                    f" {LIGHT_BRIGHTNESS_LOW_VALUE} and {LIGHT_BRIGHTNESS_HIGH_VALUE}"
                 )
+                raise ModernFormsInvalidSettingsError(msg)
 
             commands[COMMAND_LIGHT_BRIGHTNESS] = brightness
 
         if on is not None:
             if not isinstance(on, bool):
-                raise ModernFormsInvalidSettingsError("on must be a boolean")
+                msg = "on must be a boolean"
+                raise ModernFormsInvalidSettingsError(msg)
 
             commands[COMMAND_LIGHT_POWER] = on
 
@@ -248,33 +257,35 @@ class ModernFormsDevice:
                 commands[COMMAND_LIGHT_SLEEP_TIMER] = SLEEP_TIMER_CANCEL
                 if sleep > 0:
                     # count as number of seconds to sleep
-                    sleep_till = datetime.now() + timedelta(seconds=sleep)
+                    sleep_till = datetime.now(tz=UTC) + timedelta(seconds=sleep)
                     commands[COMMAND_LIGHT_SLEEP_TIMER] = int(sleep_till.timestamp())
             elif isinstance(sleep, datetime) and not (
-                sleep < datetime.now() or sleep > (datetime.now() + timedelta(hours=24))
+                sleep < datetime.now(tz=UTC)
+                or sleep > (datetime.now(tz=UTC) + timedelta(hours=24))
             ):
                 commands[COMMAND_LIGHT_SLEEP_TIMER] = int(sleep.timestamp())
             else:
-                raise ModernFormsInvalidSettingsError(
+                msg = (
                     "The time to sleep till must be a datetime object that is not more"
-                    + " then 24 hours into the future, or an interger for number of"
-                    + " seconds to sleep. 0 cancels the sleep timer."
+                    " then 24 hours into the future, or an interger for number of"
+                    " seconds to sleep. 0 cancels the sleep timer."
                 )
+                raise ModernFormsInvalidSettingsError(msg)
 
         await self.request(commands=commands)
 
-    async def fan(
+    async def fan(  # noqa: PLR0912, PLR0913
         self,
         *,
-        on: Optional[bool] = None,
-        sleep: Optional[Union[int, datetime]] = None,
-        speed: Optional[int] = None,
-        direction: Optional[str] = None,
-        wind: Optional[bool] = None,
-        wind_speed: Optional[int] = None,
-    ):
+        on: bool | None = None,
+        sleep: int | datetime | None = None,
+        speed: int | None = None,
+        direction: str | None = None,
+        wind: bool | None = None,
+        wind_speed: int | None = None,
+    ) -> None:
         """Change Fans Fan state."""
-        commands: Dict[str, Union[bool, int, str]] = {}
+        commands: dict[str, bool | int | str] = {}
 
         if speed is not None:
             if (
@@ -282,16 +293,18 @@ class ModernFormsDevice:
                 or int(speed) < FAN_SPEED_LOW_VALUE
                 or int(speed) > FAN_SPEED_HIGH_VALUE
             ):
-                raise ModernFormsInvalidSettingsError(
+                msg = (
                     "speed value must be between"
-                    + f" {FAN_SPEED_LOW_VALUE} and {FAN_SPEED_HIGH_VALUE}"
+                    f" {FAN_SPEED_LOW_VALUE} and {FAN_SPEED_HIGH_VALUE}"
                 )
+                raise ModernFormsInvalidSettingsError(msg)
 
             commands[COMMAND_FAN_SPEED] = speed
 
         if on is not None:
             if not isinstance(on, bool):
-                raise ModernFormsInvalidSettingsError("on must be a boolean")
+                msg = "on must be a boolean"
+                raise ModernFormsInvalidSettingsError(msg)
 
             commands[COMMAND_FAN_POWER] = on
 
@@ -301,28 +314,31 @@ class ModernFormsDevice:
                 commands[COMMAND_FAN_SLEEP_TIMER] = SLEEP_TIMER_CANCEL
                 if sleep > 0:
                     # count as number of seconds to sleep
-                    sleep_till = datetime.now() + timedelta(seconds=sleep)
+                    sleep_till = datetime.now(tz=UTC) + timedelta(seconds=sleep)
                     commands[COMMAND_FAN_SLEEP_TIMER] = int(sleep_till.timestamp())
             elif isinstance(sleep, datetime) and not (
-                sleep < datetime.now() or sleep > (datetime.now() + timedelta(hours=24))
+                sleep < datetime.now(tz=UTC)
+                or sleep > (datetime.now(tz=UTC) + timedelta(hours=24))
             ):
                 commands[COMMAND_FAN_SLEEP_TIMER] = int(sleep.timestamp())
             else:
-                raise ModernFormsInvalidSettingsError(
+                msg_0 = (
                     "The time to sleep till must be a datetime object that is not more"
-                    + " then 24 hours into the future, or an interger for number of"
-                    + " seconds to sleep. 0 cancels the sleep timer."
+                    " then 24 hours into the future, or an interger for number of"
+                    " seconds to sleep. 0 cancels the sleep timer."
                 )
+                raise ModernFormsInvalidSettingsError(msg_0)
 
         if direction is not None:
             if not isinstance(direction, str) or direction not in [
                 FAN_DIRECTION_FORWARD,
                 FAN_DIRECTION_REVERSE,
             ]:
-                raise ModernFormsInvalidSettingsError(
+                msg = (
                     f"fan direction must be {FAN_DIRECTION_FORWARD}"
-                    + f" or {FAN_DIRECTION_REVERSE}"
+                    f" or {FAN_DIRECTION_REVERSE}"
                 )
+                raise ModernFormsInvalidSettingsError(msg)
             commands[COMMAND_FAN_DIRECTION] = direction
 
         if self._device is not None and self._device.has_wind():
@@ -332,26 +348,28 @@ class ModernFormsDevice:
                     or int(wind_speed) < WIND_SPEED_LOW_VALUE
                     or int(wind_speed) > WIND_SPEED_HIGH_VALUE
                 ):
-                    raise ModernFormsInvalidSettingsError(
+                    msg = (
                         "wind_speed value must be between"
-                        + f" {WIND_SPEED_LOW_VALUE} and {WIND_SPEED_HIGH_VALUE}"
+                        f" {WIND_SPEED_LOW_VALUE} and {WIND_SPEED_HIGH_VALUE}"
                     )
+                    raise ModernFormsInvalidSettingsError(msg)
                 commands[COMMAND_WIND_SPEED] = wind_speed
 
             if wind is not None:
                 if not isinstance(wind, bool):
-                    raise ModernFormsInvalidSettingsError("wind must be a boolean")
+                    msg = "wind must be a boolean"
+                    raise ModernFormsInvalidSettingsError(msg)
                 commands[COMMAND_WIND] = wind
 
         await self.request(commands=commands)
 
-    async def away(self, away=bool):
+    async def away(self, *, away: bool = False) -> None:
         """Change the away state of the device."""
         await self.request(
             commands={COMMAND_AWAY_MODE: away, COMMAND_QUERY_STATUS: True}
         )
 
-    async def adaptive_learning(self, adaptive_learning=bool):
+    async def adaptive_learning(self, *, adaptive_learning: bool = False) -> None:
         """Change the adaptive learning state of the device."""
         await self.request(
             commands={
@@ -360,23 +378,20 @@ class ModernFormsDevice:
             }
         )
 
-    async def reboot(self):
+    async def reboot(self) -> None:
         """Send a reboot to the Fan."""
-        try:
+        with contextlib.suppress(ModernFormsConnectionTimeoutError):
             await self.request(commands={COMMAND_REBOOT: True})
-        except ModernFormsConnectionTimeoutError:
-            # a successful reboot drops the connection
-            pass
 
     async def close(self) -> None:
         """Close open client session."""
         if self._session and self._close_session:
             await self._session.close()
 
-    async def __aenter__(self) -> ModernFormsDevice:
+    async def __aenter__(self) -> Self:
         """Async enter."""
         return self
 
-    async def __aexit__(self, *exc_info) -> None:
+    async def __aexit__(self, *exc_info: object) -> None:
         """Async exit."""
         await self.close()
