@@ -85,3 +85,5 @@ Any Modern Forms fan that uses either the legacy `/mf` API or the new G4 `/devic
 Based on the official [Home Assistant `modern_forms` integration](https://www.home-assistant.io/integrations/modern_forms/) and the [aiomodernforms](https://github.com/wonderslug/aiomodernforms) library by [@wonderslug](https://github.com/wonderslug).
 
 G4 API reverse-engineered from PCAPDroid traffic captures documented in [HA core issue #169247](https://github.com/home-assistant/core/issues/169247).
+
+This code was partially generated with AI.
