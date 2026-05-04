@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import socket
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import aiohttp
 import async_timeout
@@ -206,7 +206,8 @@ class ModernFormsDeviceG4:
 
         if light_fixture:
             light_state = light_fixture.get("state", {})
-            raw_level = light_state.get("level", G4_BRIGHTNESS_SCALE * 100)
+            # G4 scale is 1-10000; default to full brightness (10000)
+            raw_level = light_state.get("level", 10000)
             # Convert G4's 0-10000 scale to legacy 1-100
             brightness_pct = max(1, min(100, round(raw_level / G4_BRIGHTNESS_SCALE)))
             state_data["lightOn"] = light_state.get("status", False)
@@ -281,11 +282,11 @@ class ModernFormsDeviceG4:
         self,
         *,
         on: Optional[bool] = None,
-        sleep: Optional[Union[int]] = None,
         speed: Optional[int] = None,
         direction: Optional[str] = None,
         wind: Optional[bool] = None,
         wind_speed: Optional[int] = None,
+        sleep: Optional[int] = None,  # Not supported on G4; accepted for API compatibility
     ) -> None:
         """Change fan state."""
         if self._device is None:
@@ -356,7 +357,7 @@ class ModernFormsDeviceG4:
         *,
         brightness: Optional[int] = None,
         on: Optional[bool] = None,
-        sleep: Optional[int] = None,
+        sleep: Optional[int] = None,  # Not supported on G4; accepted for API compatibility
     ) -> None:
         """Change light state."""
         if self._device is None:
