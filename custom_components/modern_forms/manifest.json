@@ -1,7 +1,7 @@
 {
   "domain": "modern_forms",
   "name": "Modern Forms (Gen4)",
-  "codeowners": ["@wonderslug"],
+  "codeowners": ["@Scoop2389"],
   "config_flow": true,
   "documentation": "https://github.com/Scoop2389/modern-forms-gen4",
   "issue_tracker": "https://github.com/Scoop2389/modern-forms-gen4/issues",
