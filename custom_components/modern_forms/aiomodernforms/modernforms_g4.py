@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import socket
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import aiohttp
 import async_timeout
@@ -30,6 +31,9 @@ from .exceptions import (
     ModernFormsNotInitializedError,
 )
 from .models import Device
+
+if TYPE_CHECKING:
+    from .models import Info, State
 
 # G4 API endpoints
 G4_DEVICE_ENDPOINT = "device"
@@ -283,7 +287,7 @@ class ModernFormsDeviceG4:
 
         return self._device
 
-    async def fan(
+    async def fan(  # noqa: PLR0912, PLR0913
         self,
         *,
         on: bool | None = None,
@@ -291,7 +295,7 @@ class ModernFormsDeviceG4:
         direction: str | None = None,
         wind: bool | None = None,
         wind_speed: int | None = None,
-        sleep: int | None = None,  # Not supported on G4; accepted for API compatibility
+        sleep: int | None = None,  # noqa: ARG002  # Not supported on G4; accepted for API compatibility
     ) -> None:
         """Change fan state."""
         if self._device is None:
@@ -363,7 +367,7 @@ class ModernFormsDeviceG4:
         *,
         brightness: int | None = None,
         on: bool | None = None,
-        sleep: int | None = None,  # Not supported on G4; accepted for API compatibility
+        sleep: int | None = None,  # noqa: ARG002  # Not supported on G4; accepted for API compatibility
     ) -> None:
         """Change light state."""
         if self._device is None:
@@ -405,23 +409,20 @@ class ModernFormsDeviceG4:
         if brightness is not None:
             self._device.state.light_brightness = brightness  # type: ignore[union-attr]
 
-    async def away(self, away: bool = False) -> None:
+    async def away(self, *, away: bool = False) -> None:
         """Set away mode via /device endpoint."""
         if self._device is None:
             await self.update()
         await self._request_device({"awayModeEnabled": away})
         self._device.state.away_mode_enabled = away  # type: ignore[union-attr]
 
-    async def adaptive_learning(self, adaptive_learning: bool = False) -> None:
+    async def adaptive_learning(self, *, adaptive_learning: bool = False) -> None:
         """Adaptive learning is not supported on G4 fans (no-op)."""
 
     async def reboot(self) -> None:
         """Reboot the G4 fan."""
-        try:
+        with contextlib.suppress(ModernFormsConnectionTimeoutError):
             await self._request_device({"reboot": True})
-        except ModernFormsConnectionTimeoutError:
-            # A successful reboot drops the connection
-            pass
 
     def has_breeze_mode(self) -> bool:
         """See if the fan has Breeze/Wind mode."""
@@ -434,7 +435,7 @@ class ModernFormsDeviceG4:
         return self._device.has_wind()
 
     @property
-    def status(self):
+    def status(self) -> State:
         """Return fan state."""
         if self._device is None:
             msg = (
@@ -445,7 +446,7 @@ class ModernFormsDeviceG4:
         return self._device.state
 
     @property
-    def info(self):
+    def info(self) -> Info:
         """Return fan info."""
         if self._device is None:
             msg = (
@@ -464,6 +465,6 @@ class ModernFormsDeviceG4:
         """Async enter."""
         return self
 
-    async def __aexit__(self, *exc_info) -> None:
+    async def __aexit__(self, *exc_info: object) -> None:
         """Async exit."""
         await self.close()

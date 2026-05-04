@@ -107,7 +107,7 @@ class ModernFormsLightEntity(ModernFormsDeviceEntity, LightEntity):
         await self.coordinator.modern_forms.light(on=LIGHT_POWER_OFF)
 
     @modernforms_exception_handler
-    async def async_turn_on(self, **_kwargs: Any) -> None:
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light."""
         data = {OPT_ON: LIGHT_POWER_ON}
 
