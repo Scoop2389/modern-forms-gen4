@@ -41,6 +41,9 @@
     "light": {
       "downlight": {
         "name": "Downlight"
+      },
+      "uplight": {
+        "name": "Uplight"
       }
     },
     "sensor": {

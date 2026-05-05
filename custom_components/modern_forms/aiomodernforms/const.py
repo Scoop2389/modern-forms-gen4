@@ -64,6 +64,10 @@ STATE_WIND_POWER = "wind"
 STATE_WIND_SPEED = "windSpeed"
 STATE_LIGHT_COLOR_TEMP = "lightColorTemp"
 
+STATE_UPLIGHT_POWER = "uplightOn"
+STATE_UPLIGHT_BRIGHTNESS = "uplightBrightness"
+STATE_UPLIGHT_COLOR_TEMP = "uplightColorTemp"
+
 
 INFO_CLIENT_ID = "clientId"
 INFO_MAC = "mac"

@@ -103,6 +103,11 @@ class ModernFormsDeviceAuto:
         """Change light state."""
         await self._client.light(**kwargs)  # type: ignore[union-attr]
 
+    async def uplight(self, **kwargs: Any) -> None:
+        """Change uplight state."""
+        if isinstance(self._client, ModernFormsDeviceG4):
+            await self._client.uplight(**kwargs)
+
     def is_g4(self) -> bool:
         """Return whether the device is a Generation 4 fan."""
         return isinstance(self._client, ModernFormsDeviceG4)
@@ -124,6 +129,12 @@ class ModernFormsDeviceAuto:
     def has_breeze_mode(self) -> bool:
         """Return whether the fan supports Breeze/Wind mode."""
         return self._client.has_breeze_mode()  # type: ignore[union-attr]
+
+    def has_uplight(self) -> bool:
+        """Return whether the fan supports Uplight mode."""
+        if isinstance(self._client, ModernFormsDeviceG4):
+            return self._client.has_uplight()
+        return False
 
     @property
     def status(self) -> State:

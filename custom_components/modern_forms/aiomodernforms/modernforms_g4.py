@@ -101,6 +101,7 @@ class ModernFormsDeviceG4:
         self._downlight_addr: int | None = None
         self._uplight_addr: int | None = None
         self._has_downlight: bool | None = None
+        self._has_uplight: bool | None = None
 
     async def _raw_request(self, endpoint: str, payload: dict) -> Any:
         """Make a POST request to a G4 endpoint."""
@@ -171,6 +172,7 @@ class ModernFormsDeviceG4:
         device_data: dict,
         fan_fixture: dict,
         light_fixture: dict | None,
+        uplight_fixture: dict | None,
     ) -> tuple[dict, dict]:
         """Build state_data and info_data dicts using legacy API key names."""
         fan_state = fan_fixture.get("state", {})
@@ -184,7 +186,7 @@ class ModernFormsDeviceG4:
             "mainMcuFirmwareVersion": device_data.get("scmVer", ""),
             "owner": device_data.get("owner", ""),
             # Indicate a light is present so the light entity is created
-            "lightType": "G4" if self._has_downlight else "",
+            "lightType": "G4" if (self._has_downlight or self._has_uplight) else "",
             # Fields not available in G4
             "clientId": "",
             "fanMotorType": "",
@@ -225,12 +227,28 @@ class ModernFormsDeviceG4:
             state_data["lightBrightness"] = brightness_pct
             state_data["lightSleepTimer"] = 0
             # Color temperature in Kelvin (G4 native unit); None if not present
-            raw_cct = light_state.get("colorTemp")
+            raw_cct = light_state.get("mixColorTemp")
             state_data["lightColorTemp"] = raw_cct if isinstance(raw_cct, int) else None
         else:
             state_data["lightOn"] = False
             state_data["lightBrightness"] = 100
             state_data["lightSleepTimer"] = 0
+            state_data["lightColorTemp"] = None
+
+        if uplight_fixture:
+            uplight_state = uplight_fixture.get("state", {})
+            raw_level = uplight_state.get("level", 10000)
+            brightness_pct = max(1, min(100, round(raw_level / G4_BRIGHTNESS_SCALE)))
+            state_data["uplightOn"] = uplight_state.get("status", False)
+            state_data["uplightBrightness"] = brightness_pct
+            raw_cct = uplight_state.get("mixColorTemp")
+            state_data["uplightColorTemp"] = (
+                raw_cct if isinstance(raw_cct, int) else None
+            )
+        else:
+            state_data["uplightOn"] = None
+            state_data["uplightBrightness"] = None
+            state_data["uplightColorTemp"] = None
 
         return state_data, info_data
 
@@ -266,7 +284,7 @@ class ModernFormsDeviceG4:
             {"action": G4_ACTION_QUERY, "addr": self._fan_addr}
         )
 
-        # Probe for light on first update
+        # Probe for lights on first update
         light_fixture: dict | None = None
         if self._has_downlight is None:
             try:
@@ -281,8 +299,22 @@ class ModernFormsDeviceG4:
                 {"action": G4_ACTION_QUERY, "addr": self._downlight_addr}
             )
 
+        uplight_fixture: dict | None = None
+        if self._has_uplight is None:
+            try:
+                uplight_fixture = await self._request_fixture(
+                    {"action": G4_ACTION_QUERY, "addr": self._uplight_addr}
+                )
+                self._has_uplight = True
+            except ModernFormsError:
+                self._has_uplight = False
+        elif self._has_uplight:
+            uplight_fixture = await self._request_fixture(
+                {"action": G4_ACTION_QUERY, "addr": self._uplight_addr}
+            )
+
         state_data, info_data = self._build_state_and_info(
-            device_data, fan_fixture, light_fixture
+            device_data, fan_fixture, light_fixture, uplight_fixture
         )
 
         if self._device is None or full_update:
@@ -411,7 +443,7 @@ class ModernFormsDeviceG4:
             # Convert 1-100 to G4's 1-10000 scale
             state["level"] = max(1, min(10000, brightness * G4_BRIGHTNESS_SCALE))
         if color_temp_kelvin is not None:
-            state["colorTemp"] = color_temp_kelvin
+            state["mixColorTemp"] = color_temp_kelvin
 
         if state:
             await self._request_fixture(
@@ -429,6 +461,68 @@ class ModernFormsDeviceG4:
             self._device.state.light_brightness = brightness  # type: ignore[union-attr]
         if color_temp_kelvin is not None:
             self._device.state.light_color_temp_kelvin = color_temp_kelvin  # type: ignore[union-attr]
+
+    async def uplight(
+        self,
+        *,
+        brightness: int | None = None,
+        on: bool | None = None,
+        color_temp_kelvin: int | None = None,
+    ) -> None:
+        """Change uplight state."""
+        if self._device is None:
+            await self.update()
+
+        if not self._has_uplight:
+            return
+
+        if brightness is not None and (
+            not isinstance(brightness, int)
+            or brightness < LIGHT_BRIGHTNESS_LOW_VALUE
+            or brightness > LIGHT_BRIGHTNESS_HIGH_VALUE
+        ):
+            msg = (
+                f"brightness value must be between {LIGHT_BRIGHTNESS_LOW_VALUE}"
+                f" and {LIGHT_BRIGHTNESS_HIGH_VALUE}"
+            )
+            raise ModernFormsInvalidSettingsError(msg)
+
+        if color_temp_kelvin is not None and (
+            not isinstance(color_temp_kelvin, int)
+            or color_temp_kelvin < LIGHT_COLOR_TEMP_MIN_KELVIN
+            or color_temp_kelvin > LIGHT_COLOR_TEMP_MAX_KELVIN
+        ):
+            msg = (
+                f"color_temp_kelvin value must be between {LIGHT_COLOR_TEMP_MIN_KELVIN}"
+                f" and {LIGHT_COLOR_TEMP_MAX_KELVIN}"
+            )
+            raise ModernFormsInvalidSettingsError(msg)
+
+        state: dict[str, Any] = {}
+        if on is not None:
+            state["status"] = on
+        if brightness is not None:
+            # Convert 1-100 to G4's 1-10000 scale
+            state["level"] = max(1, min(10000, brightness * G4_BRIGHTNESS_SCALE))
+        if color_temp_kelvin is not None:
+            state["mixColorTemp"] = color_temp_kelvin
+
+        if state:
+            await self._request_fixture(
+                {
+                    "action": G4_ACTION_CONTROL,
+                    "addr": self._uplight_addr,
+                    "state": state,
+                }
+            )
+
+        # Optimistically update local state
+        if on is not None:
+            self._device.state.uplight_on = on  # type: ignore[union-attr]
+        if brightness is not None:
+            self._device.state.uplight_brightness = brightness  # type: ignore[union-attr]
+        if color_temp_kelvin is not None:
+            self._device.state.uplight_color_temp_kelvin = color_temp_kelvin  # type: ignore[union-attr]
 
     async def away(self, *, away: bool = False) -> None:
         """Set away mode via /device endpoint."""
@@ -454,6 +548,16 @@ class ModernFormsDeviceG4:
             )
             raise ModernFormsNotInitializedError(msg)
         return self._device.has_wind()
+
+    def has_uplight(self) -> bool:
+        """See if the fan has an Uplight fixture."""
+        if self._device is None:
+            msg = (
+                "The device has not been initialized. "
+                "Please run update on the device before getting state"
+            )
+            raise ModernFormsNotInitializedError(msg)
+        return self._has_uplight if self._has_uplight is not None else False
 
     @property
     def status(self) -> State:
