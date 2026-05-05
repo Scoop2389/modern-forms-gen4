@@ -93,7 +93,7 @@ class State:
     uplight_color_temp_kelvin: int | None
     away_mode_enabled: bool
     adaptive_learning_enabled: bool
-    wind: bool
+    wind: bool | None
     wind_speed: int
 
     @staticmethod

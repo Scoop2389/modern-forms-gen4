@@ -10,7 +10,7 @@ from typing import Any, Self
 
 import aiohttp
 import async_timeout
-import backoff  # type: ignore[import-untyped]
+import backoff
 from yarl import URL
 
 from .__version__ import __version__
@@ -66,7 +66,7 @@ class ModernFormsDevice:
         username: str = "",
         password: str = "",
         request_timeout: float = DEFAULT_TIMEOUT_SECS,
-        session: aiohttp.client.ClientSession = None,
+        session: aiohttp.client.ClientSession | None = None,
         *,
         tls: bool = False,
         verify_ssl: bool = True,

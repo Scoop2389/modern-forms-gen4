@@ -83,7 +83,7 @@ class ModernFormsDeviceG4:
         host: str,
         port: int = DEFAULT_PORT,
         request_timeout: float = DEFAULT_TIMEOUT_SECS,
-        session: aiohttp.client.ClientSession = None,
+        session: aiohttp.client.ClientSession | None = None,
         *,
         tls: bool = False,
         verify_ssl: bool = True,

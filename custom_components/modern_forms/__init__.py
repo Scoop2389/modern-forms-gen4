@@ -1,9 +1,10 @@
 """The Modern Forms integration."""
 
 import logging
-from typing import TYPE_CHECKING, Any, Concatenate
+from typing import TYPE_CHECKING, Any, Concatenate, TypeVar
 
 from homeassistant.const import Platform
+from typing_extensions import ParamSpec
 
 from .aiomodernforms import ModernFormsConnectionError, ModernFormsError
 from .coordinator import ModernFormsConfigEntry, ModernFormsDataUpdateCoordinator
@@ -13,6 +14,11 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
     from homeassistant.core import HomeAssistant
+
+_ModernFormsDeviceEntityT = TypeVar(
+    "_ModernFormsDeviceEntityT", bound=ModernFormsDeviceEntity
+)
+_P = ParamSpec("_P")
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
@@ -45,12 +51,9 @@ async def async_unload_entry(
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-def modernforms_exception_handler[
-    ModernFormsDeviceEntityT: ModernFormsDeviceEntity,
-    **P,
-](
-    func: Callable[Concatenate[ModernFormsDeviceEntityT, P], Any],
-) -> Callable[Concatenate[ModernFormsDeviceEntityT, P], Coroutine[Any, Any, None]]:
+def modernforms_exception_handler(
+    func: Callable[Concatenate[_ModernFormsDeviceEntityT, _P], Any],
+) -> Callable[Concatenate[_ModernFormsDeviceEntityT, _P], Coroutine[Any, Any, None]]:
     """
     Decorate Modern Forms calls to handle Modern Forms exceptions.
 
@@ -59,7 +62,7 @@ def modernforms_exception_handler[
     """
 
     async def handler(
-        self: ModernFormsDeviceEntityT, *args: P.args, **kwargs: P.kwargs
+        self: _ModernFormsDeviceEntityT, *args: _P.args, **kwargs: _P.kwargs
     ) -> None:
         try:
             await func(self, *args, **kwargs)

@@ -21,7 +21,7 @@ SCAN_INTERVAL = timedelta(seconds=5)
 _LOGGER = logging.getLogger(__name__)
 
 
-type ModernFormsConfigEntry = ConfigEntry[ModernFormsDataUpdateCoordinator]
+ModernFormsConfigEntry = ConfigEntry["ModernFormsDataUpdateCoordinator"]
 
 
 class ModernFormsDataUpdateCoordinator(DataUpdateCoordinator[ModernFormsDeviceState]):
@@ -47,7 +47,7 @@ class ModernFormsDataUpdateCoordinator(DataUpdateCoordinator[ModernFormsDeviceSt
             update_interval=SCAN_INTERVAL,
         )
 
-    async def _async_update_data(self) -> ModernFormsDevice:
+    async def _async_update_data(self) -> ModernFormsDeviceState:
         """Fetch data from Modern Forms."""
         try:
             return await self.modern_forms.update(

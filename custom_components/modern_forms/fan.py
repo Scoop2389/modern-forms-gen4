@@ -120,9 +120,13 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
     async def async_turn_on(
         self,
         percentage: int | None = None,
+        preset_mode: str | None = None,
         **_kwargs: Any,
     ) -> None:
         """Turn on the fan."""
+        if preset_mode is not None:
+            await self.async_set_preset_mode(preset_mode)
+            return
         if percentage is not None:
             await self.async_set_percentage(percentage)
             return
