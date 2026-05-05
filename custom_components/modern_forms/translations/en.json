@@ -11,7 +11,7 @@
     "step": {
       "user": {
         "data": {
-          "host": "[%key:common::config_flow::data::host%]"
+          "host": "Host"
         },
         "data_description": {
           "host": "The hostname or IP address of your Modern Forms fan."
@@ -35,7 +35,7 @@
     },
     "fan": {
       "fan": {
-        "name": "[%key:component::fan::title%]"
+        "name": "Fan"
       }
     },
     "light": {
