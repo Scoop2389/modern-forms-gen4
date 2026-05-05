@@ -102,6 +102,8 @@ class ModernFormsLightEntity(ModernFormsDeviceEntity, LightEntity):
             coordinator=coordinator,
         )
         self._attr_unique_id = f"{self.coordinator.data.info.mac_address}"
+        if not self.coordinator.modern_forms.has_uplight():
+            self._attr_translation_key = "light"
 
     @property
     def color_mode(self) -> ColorMode:

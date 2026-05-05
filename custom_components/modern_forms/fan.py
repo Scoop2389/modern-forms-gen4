@@ -83,11 +83,15 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
         state = self.coordinator.data.state
         if not bool(state.fan_on):
             return 0
+        if state.wind:
+            return max(0, min(100, round(state.wind_speed / 3 * 100)))
         return max(0, min(100, round(state.fan_speed / 6 * 100)))
 
     @property
     def speed_count(self) -> int:
         """Return the number of speeds the fan supports."""
+        if self.coordinator.data.state.wind:
+            return 3
         return 6
 
     @property
@@ -109,10 +113,16 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan."""
         if percentage > 0:
-            speed = max(1, min(6, round(percentage / 100 * 6)))
-            await self.coordinator.modern_forms.fan(
-                **{OPT_ON: FAN_POWER_ON, OPT_SPEED: speed}
-            )
+            if self.coordinator.data.state.wind:
+                speed = max(1, min(3, round(percentage / 100 * 3)))
+                await self.coordinator.modern_forms.fan(
+                    **{OPT_ON: FAN_POWER_ON, "wind_speed": speed}
+                )
+            else:
+                speed = max(1, min(6, round(percentage / 100 * 6)))
+                await self.coordinator.modern_forms.fan(
+                    **{OPT_ON: FAN_POWER_ON, OPT_SPEED: speed}
+                )
         else:
             await self.async_turn_off()
 

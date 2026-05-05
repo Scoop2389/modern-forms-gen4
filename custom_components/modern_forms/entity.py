@@ -11,6 +11,7 @@ class ModernFormsDeviceEntity(CoordinatorEntity[ModernFormsDataUpdateCoordinator
     """Defines a Modern Forms device entity."""
 
     _attr_has_entity_name = True
+    _attr_name = None
 
     def __init__(
         self,

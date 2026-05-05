@@ -8,6 +8,17 @@
         "default": "mdi:av-timer"
       }
     },
+    "light": {
+      "light": {
+        "default": "mdi:ceiling-light"
+      },
+      "downlight": {
+        "default": "mdi:ceiling-light"
+      },
+      "uplight": {
+        "default": "mdi:ceiling-light-outline"
+      }
+    },
     "sensor": {
       "fan_timer_remaining_time": {
         "default": "mdi:timer-outline"
@@ -22,6 +33,9 @@
       },
       "away_mode": {
         "default": "mdi:airplane-takeoff"
+      },
+      "breeze_mode": {
+        "default": "mdi:weather-windy"
       }
     }
   },
