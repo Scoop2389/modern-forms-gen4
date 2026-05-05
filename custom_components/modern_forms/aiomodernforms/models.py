@@ -27,8 +27,12 @@ from .const import (
     STATE_FAN_SLEEP_TIMER,
     STATE_FAN_SPEED,
     STATE_LIGHT_BRIGHTNESS,
+    STATE_LIGHT_COLOR_TEMP,
     STATE_LIGHT_POWER,
     STATE_LIGHT_SLEEP_TIMER,
+    STATE_UPLIGHT_BRIGHTNESS,
+    STATE_UPLIGHT_COLOR_TEMP,
+    STATE_UPLIGHT_POWER,
     STATE_WIND_POWER,
     STATE_WIND_SPEED,
 )
@@ -82,7 +86,11 @@ class State:
     fan_sleep_timer: int
     light_on: bool
     light_brightness: int
+    light_color_temp_kelvin: int | None
     light_sleep_timer: int
+    uplight_on: bool | None
+    uplight_brightness: int | None
+    uplight_color_temp_kelvin: int | None
     away_mode_enabled: bool
     adaptive_learning_enabled: bool
     wind: bool
@@ -98,7 +106,11 @@ class State:
             fan_sleep_timer=data.get(STATE_FAN_SLEEP_TIMER, 0),
             light_on=data.get(STATE_LIGHT_POWER, False),
             light_brightness=data.get(STATE_LIGHT_BRIGHTNESS, 100),
+            light_color_temp_kelvin=data.get(STATE_LIGHT_COLOR_TEMP),
             light_sleep_timer=data.get(STATE_LIGHT_SLEEP_TIMER, 0),
+            uplight_on=data.get(STATE_UPLIGHT_POWER),
+            uplight_brightness=data.get(STATE_UPLIGHT_BRIGHTNESS),
+            uplight_color_temp_kelvin=data.get(STATE_UPLIGHT_COLOR_TEMP),
             away_mode_enabled=data.get(STATE_AWAY_MODE, False),
             adaptive_learning_enabled=data.get(STATE_ADAPTIVE_LEARNING, False),
             wind=data.get(STATE_WIND_POWER),
@@ -129,3 +141,7 @@ class Device:
     def has_wind(self) -> bool:
         """See if the Fan has Breeze Mode."""
         return self.state.wind is not None
+
+    def has_uplight(self) -> bool:
+        """See if the Fan has an Uplight fixture."""
+        return self.state.uplight_on is not None

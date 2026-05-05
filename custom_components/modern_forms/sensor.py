@@ -26,17 +26,22 @@ async def async_setup_entry(
     """Set up Modern Forms sensor based on a config entry."""
     coordinator = entry.runtime_data
 
-    sensors: list[ModernFormsSensor] = [
-        ModernFormsFanTimerRemainingTimeSensor(entry.entry_id, coordinator),
-    ]
+    sensors: list[ModernFormsSensor] = []
 
-    # Only setup light sleep timer sensor if light unit installed
-    if coordinator.data.info.light_type:
+    # Sleep timers are not supported on G4 fans
+    if not coordinator.modern_forms.is_g4():
         sensors.append(
-            ModernFormsLightTimerRemainingTimeSensor(entry.entry_id, coordinator)
+            ModernFormsFanTimerRemainingTimeSensor(entry.entry_id, coordinator)
         )
 
-    async_add_entities(sensors)
+        # Only setup light sleep timer sensor if light unit installed
+        if coordinator.data.info.light_type:
+            sensors.append(
+                ModernFormsLightTimerRemainingTimeSensor(entry.entry_id, coordinator)
+            )
+
+    if sensors:
+        async_add_entities(sensors)
 
 
 class ModernFormsSensor(ModernFormsDeviceEntity, SensorEntity):

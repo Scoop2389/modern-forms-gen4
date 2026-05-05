@@ -39,8 +39,11 @@
       }
     },
     "light": {
-      "light": {
-        "name": "[%key:component::light::title%]"
+      "downlight": {
+        "name": "Downlight"
+      },
+      "uplight": {
+        "name": "Uplight"
       }
     },
     "sensor": {
@@ -57,6 +60,9 @@
       },
       "away_mode": {
         "name": "Away mode"
+      },
+      "breeze_mode": {
+        "name": "Breeze mode"
       }
     }
   },

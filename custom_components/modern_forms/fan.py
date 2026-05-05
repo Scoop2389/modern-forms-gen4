@@ -5,11 +5,6 @@ from typing import TYPE_CHECKING, Any
 import voluptuous as vol
 from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.helpers import entity_platform
-from homeassistant.util.percentage import (
-    percentage_to_ranged_value,
-    ranged_value_to_percentage,
-)
-from homeassistant.util.scaling import int_states_in_range
 
 from . import modernforms_exception_handler
 from .aiomodernforms.const import FAN_POWER_OFF, FAN_POWER_ON
@@ -62,9 +57,7 @@ async def async_setup_entry(
 
 
 class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
-    """Defines a Modern Forms light."""
-
-    SPEED_RANGE = (1, 6)  # off is not included
+    """Defines a Modern Forms fan."""
 
     _attr_supported_features = (
         FanEntityFeature.DIRECTION
@@ -77,7 +70,7 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
     def __init__(
         self, entry_id: str, coordinator: ModernFormsDataUpdateCoordinator
     ) -> None:
-        """Initialize Modern Forms light."""
+        """Initialize Modern Forms fan."""
         super().__init__(
             entry_id=entry_id,
             coordinator=coordinator,
@@ -87,22 +80,20 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
     @property
     def percentage(self) -> int | None:
         """Return the current speed percentage."""
-        percentage = 0
-        if bool(self.coordinator.data.state.fan_on):
-            percentage = ranged_value_to_percentage(
-                self.SPEED_RANGE, self.coordinator.data.state.fan_speed
-            )
-        return percentage
+        state = self.coordinator.data.state
+        if not bool(state.fan_on):
+            return 0
+        return max(0, min(100, round(state.fan_speed / 6 * 100)))
+
+    @property
+    def speed_count(self) -> int:
+        """Return the number of speeds the fan supports."""
+        return 6
 
     @property
     def current_direction(self) -> str:
         """Return the current direction of the fan."""
         return self.coordinator.data.state.fan_direction
-
-    @property
-    def speed_count(self) -> int:
-        """Return the number of speeds the fan supports."""
-        return int_states_in_range(self.SPEED_RANGE)
 
     @property
     def is_on(self) -> bool:
@@ -118,7 +109,10 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan."""
         if percentage > 0:
-            await self.async_turn_on(percentage=percentage)
+            speed = max(1, min(6, round(percentage / 100 * 6)))
+            await self.coordinator.modern_forms.fan(
+                **{OPT_ON: FAN_POWER_ON, OPT_SPEED: speed}
+            )
         else:
             await self.async_turn_off()
 
@@ -126,17 +120,13 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
     async def async_turn_on(
         self,
         percentage: int | None = None,
-        _preset_mode: str | None = None,
         **_kwargs: Any,
     ) -> None:
         """Turn on the fan."""
-        data = {OPT_ON: FAN_POWER_ON}
-
-        if percentage:
-            data[OPT_SPEED] = round(
-                percentage_to_ranged_value(self.SPEED_RANGE, percentage)
-            )
-        await self.coordinator.modern_forms.fan(**data)
+        if percentage is not None:
+            await self.async_set_percentage(percentage)
+            return
+        await self.coordinator.modern_forms.fan(**{OPT_ON: FAN_POWER_ON})
 
     @modernforms_exception_handler
     async def async_turn_off(self, **_kwargs: Any) -> None:
@@ -148,7 +138,7 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
         self,
         sleep_time: int,
     ) -> None:
-        """Set a Modern Forms light sleep timer."""
+        """Set a Modern Forms fan sleep timer."""
         await self.coordinator.modern_forms.fan(sleep=sleep_time * 60)
 
     @modernforms_exception_handler
