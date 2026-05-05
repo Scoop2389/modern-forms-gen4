@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
-    ATTR_COLOR_TEMP_K,
+    ATTR_COLOR_TEMP_KELVIN,
     ColorMode,
     LightEntity,
 )
@@ -151,8 +151,8 @@ class ModernFormsLightEntity(ModernFormsDeviceEntity, LightEntity):
                 BRIGHTNESS_RANGE, kwargs[ATTR_BRIGHTNESS]
             )
 
-        if ATTR_COLOR_TEMP_K in kwargs:
-            data[OPT_COLOR_TEMP] = kwargs[ATTR_COLOR_TEMP_K]
+        if ATTR_COLOR_TEMP_KELVIN in kwargs:
+            data[OPT_COLOR_TEMP] = kwargs[ATTR_COLOR_TEMP_KELVIN]
 
         await self.coordinator.modern_forms.light(**data)
 
@@ -239,7 +239,7 @@ class ModernFormsUplightEntity(ModernFormsDeviceEntity, LightEntity):
                 BRIGHTNESS_RANGE, kwargs[ATTR_BRIGHTNESS]
             )
 
-        if ATTR_COLOR_TEMP_K in kwargs:
-            data[OPT_COLOR_TEMP] = kwargs[ATTR_COLOR_TEMP_K]
+        if ATTR_COLOR_TEMP_KELVIN in kwargs:
+            data[OPT_COLOR_TEMP] = kwargs[ATTR_COLOR_TEMP_KELVIN]
 
         await self.coordinator.modern_forms.uplight(**data)

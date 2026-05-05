@@ -8,7 +8,8 @@
   "issue_tracker": "https://github.com/Scoop2389/modern-forms-gen4/issues",
   "loggers": ["aiomodernforms"],
   "requirements": [],
-  "version": "1.0.0",
+  "version": "1.0.2",
+
   "zeroconf": [
     {
       "name": "wac*",
