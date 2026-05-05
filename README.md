@@ -31,10 +31,13 @@ There is no configuration required — the same UI setup flow works for both fan
 | Breeze / Wind mode | ✅ (if supported) | ✅ |
 | Light on/off | ✅ (if installed) | ✅ (auto-detected) |
 | Light brightness | ✅ | ✅ |
-| Away mode switch | ✅ | ✅ |
+| Light color temperature | — | ✅ | 
+| Away mode switch | ✅ | — (not available on G4) |
 | Adaptive learning switch | ✅ | — (not available on G4) |
 | Fan/Light sleep timers | ✅ | — (not available on G4) |
-| Zeroconf/mDNS discovery | ✅ | ✅ |
+| Zeroconf/mDNS discovery | ✅ | ⚠️* |
+
+*Not sure if not supported on G4 or just not working yet
 
 ## G4 fixture address calculation
 
@@ -86,4 +89,4 @@ Based on the official [Home Assistant `modern_forms` integration](https://www.ho
 
 G4 API reverse-engineered from PCAPDroid traffic captures documented in [HA core issue #169247](https://github.com/home-assistant/core/issues/169247).
 
-This code was partially generated with AI.
+This code was generated with AI.
