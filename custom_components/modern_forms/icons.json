@@ -10,13 +10,13 @@
     },
     "light": {
       "light": {
-        "default": "mdi:ceiling-light"
+        "default": "mdi:ceiling-fan-light"
       },
       "downlight": {
-        "default": "mdi:ceiling-light"
+        "default": "mdi:ceiling-fan-light"
       },
       "uplight": {
-        "default": "mdi:ceiling-light-outline"
+        "default": "mdi:wall-sconce-round-variant"
       }
     },
     "sensor": {
