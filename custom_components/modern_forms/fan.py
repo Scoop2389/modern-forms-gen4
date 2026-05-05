@@ -7,14 +7,12 @@ from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.helpers import entity_platform
 
 from . import modernforms_exception_handler
-from .aiomodernforms.const import FAN_POWER_OFF, FAN_POWER_ON, WIND_OFF, WIND_ON
+from .aiomodernforms.const import FAN_POWER_OFF, FAN_POWER_ON
 from .const import (
     ATTR_SLEEP_TIME,
     CLEAR_TIMER,
     OPT_ON,
     OPT_SPEED,
-    OPT_WIND,
-    OPT_WIND_SPEED,
     SERVICE_CLEAR_FAN_SLEEP_TIMER,
     SERVICE_SET_FAN_SLEEP_TIMER,
 )
@@ -25,18 +23,6 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
     from .coordinator import ModernFormsConfigEntry, ModernFormsDataUpdateCoordinator
-
-SPEED_PRESETS: dict[int, str] = {
-    1: "Speed 1",
-    2: "Speed 2",
-    3: "Speed 3",
-    4: "Speed 4",
-    5: "Speed 5",
-    6: "Speed 6",
-}
-SPEED_PRESET_NAMES = list(SPEED_PRESETS.values())
-SPEED_PRESET_BY_NAME = {v: k for k, v in SPEED_PRESETS.items()}
-BREEZE_PRESET = "Breeze"
 
 
 async def async_setup_entry(
@@ -75,7 +61,7 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
 
     _attr_supported_features = (
         FanEntityFeature.DIRECTION
-        | FanEntityFeature.PRESET_MODE
+        | FanEntityFeature.SET_SPEED
         | FanEntityFeature.TURN_OFF
         | FanEntityFeature.TURN_ON
     )
@@ -92,22 +78,17 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
         self._attr_unique_id = f"{self.coordinator.data.info.mac_address}"
 
     @property
-    def preset_modes(self) -> list[str]:
-        """Return the list of available preset modes."""
-        modes = list(SPEED_PRESET_NAMES)
-        if self.coordinator.modern_forms.has_breeze_mode():
-            modes.append(BREEZE_PRESET)
-        return modes
+    def percentage(self) -> int | None:
+        """Return the current speed percentage."""
+        state = self.coordinator.data.state
+        if not bool(state.fan_on):
+            return 0
+        return max(0, min(100, round(state.fan_speed / 6 * 100)))
 
     @property
-    def preset_mode(self) -> str | None:
-        """Return the current preset mode."""
-        state = self.coordinator.data.state
-        if bool(state.wind):
-            return BREEZE_PRESET
-        if bool(state.fan_on):
-            return SPEED_PRESETS.get(state.fan_speed)
-        return None
+    def speed_count(self) -> int:
+        """Return the number of speeds the fan supports."""
+        return 6
 
     @property
     def current_direction(self) -> str:
@@ -125,35 +106,27 @@ class ModernFormsFanEntity(FanEntity, ModernFormsDeviceEntity):
         await self.coordinator.modern_forms.fan(direction=direction)
 
     @modernforms_exception_handler
-    async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set a preset mode on the fan."""
-        if preset_mode == BREEZE_PRESET:
+    async def async_set_percentage(self, percentage: int) -> None:
+        """Set the speed percentage of the fan."""
+        if percentage > 0:
+            speed = max(1, min(6, round(percentage / 100 * 6)))
             await self.coordinator.modern_forms.fan(
-                **{OPT_ON: FAN_POWER_ON, OPT_WIND: WIND_ON}
+                **{OPT_ON: FAN_POWER_ON, OPT_SPEED: speed}
             )
-        elif preset_mode in SPEED_PRESET_BY_NAME:
-            speed = SPEED_PRESET_BY_NAME[preset_mode]
-            await self.coordinator.modern_forms.fan(
-                **{OPT_ON: FAN_POWER_ON, OPT_SPEED: speed, OPT_WIND: WIND_OFF}
-            )
+        else:
+            await self.async_turn_off()
 
     @modernforms_exception_handler
     async def async_turn_on(
         self,
         percentage: int | None = None,
-        preset_mode: str | None = None,
         **_kwargs: Any,
     ) -> None:
         """Turn on the fan."""
-        if preset_mode is not None:
-            await self.async_set_preset_mode(preset_mode)
-            return
-        data: dict[str, Any] = {OPT_ON: FAN_POWER_ON}
         if percentage is not None:
-            # Map percentage to the nearest of 6 speed steps
-            speed = max(1, min(6, round(percentage / 100 * 6)))
-            data[OPT_SPEED] = speed
-        await self.coordinator.modern_forms.fan(**data)
+            await self.async_set_percentage(percentage)
+            return
+        await self.coordinator.modern_forms.fan(**{OPT_ON: FAN_POWER_ON})
 
     @modernforms_exception_handler
     async def async_turn_off(self, **_kwargs: Any) -> None:

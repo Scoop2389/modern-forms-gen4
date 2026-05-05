@@ -1,6 +1,6 @@
 """Support for Modern Forms Fan lights."""
 
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.components.light import (

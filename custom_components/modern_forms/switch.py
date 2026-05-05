@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.components.switch import SwitchEntity
 
 from . import modernforms_exception_handler
+from .aiomodernforms.const import WIND_OFF, WIND_ON
+from .const import OPT_WIND
 from .entity import ModernFormsDeviceEntity
 
 if TYPE_CHECKING:
@@ -22,13 +24,21 @@ async def async_setup_entry(
     """Set up Modern Forms switch based on a config entry."""
     coordinator = entry.runtime_data
 
-    switches = [
-        ModernFormsAwaySwitch(entry.entry_id, coordinator),
-    ]
-    # Adaptive learning is not supported on G4 fans
+    switches: list[ModernFormsSwitch] = []
+
+    # Away mode and Adaptive learning are not supported on G4 fans
     if not coordinator.modern_forms.is_g4():
-        switches.append(ModernFormsAdaptiveLearningSwitch(entry.entry_id, coordinator))
-    async_add_entities(switches)
+        switches.extend(
+            [
+                ModernFormsAwaySwitch(entry.entry_id, coordinator),
+                ModernFormsAdaptiveLearningSwitch(entry.entry_id, coordinator),
+            ]
+        )
+    elif coordinator.modern_forms.has_breeze_mode():
+        switches.append(ModernFormsBreezeSwitch(entry.entry_id, coordinator))
+
+    if switches:
+        async_add_entities(switches)
 
 
 class ModernFormsSwitch(ModernFormsDeviceEntity, SwitchEntity):
@@ -107,3 +117,34 @@ class ModernFormsAdaptiveLearningSwitch(ModernFormsSwitch):
     async def async_turn_on(self, **_kwargs: Any) -> None:
         """Turn on the Modern Forms Adaptive Learning switch."""
         await self.coordinator.modern_forms.adaptive_learning(adaptive_learning=True)
+
+
+class ModernFormsBreezeSwitch(ModernFormsSwitch):
+    """Defines a Modern Forms Breeze mode switch."""
+
+    _attr_translation_key = "breeze_mode"
+
+    def __init__(
+        self, entry_id: str, coordinator: ModernFormsDataUpdateCoordinator
+    ) -> None:
+        """Initialize Modern Forms Breeze mode switch."""
+        super().__init__(
+            coordinator=coordinator,
+            entry_id=entry_id,
+            key="breeze_mode",
+        )
+
+    @property
+    def is_on(self) -> bool:
+        """Return the state of the switch."""
+        return bool(self.coordinator.data.state.wind)
+
+    @modernforms_exception_handler
+    async def async_turn_off(self, **_kwargs: Any) -> None:
+        """Turn off the Modern Forms Breeze mode switch."""
+        await self.coordinator.modern_forms.fan(**{OPT_WIND: WIND_OFF})
+
+    @modernforms_exception_handler
+    async def async_turn_on(self, **_kwargs: Any) -> None:
+        """Turn on the Modern Forms Breeze mode switch."""
+        await self.coordinator.modern_forms.fan(**{OPT_WIND: WIND_ON})
