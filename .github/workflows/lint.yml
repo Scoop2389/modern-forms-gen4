@@ -33,3 +33,6 @@ jobs:
 
       - name: Format
         run: python3 -m ruff format . --check
+
+      - name: Mypy
+        run: python3 -m mypy custom_components/modern_forms
