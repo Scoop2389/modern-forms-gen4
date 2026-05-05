@@ -16,6 +16,7 @@ COMMAND_FAN_SLEEP_TIMER = "fanSleepTimer"
 COMMAND_LIGHT_SLEEP_TIMER = "lightSleepTimer"
 COMMAND_ADAPTIVE_LEARNING = "adaptiveLearning"
 COMMAND_LIGHT_COLOR_TEMP = "lightColorTemp"
+COMMAND_REBOOT = "reboot"
 COMMAND_WIND = "wind"
 COMMAND_WIND_SPEED = "windSpeed"
 
