@@ -1,5 +1,8 @@
 # Modern Forms (Gen4) — Home Assistant Custom Integration
 
+> [!CAUTION]
+> This integration is unmaintained and has been archived to preserve external links. These changes have been merged into Home Assistant core (see [aiomodernforms #287](https://github.com/wonderslug/aiomodernforms/issues/287)).
+
 This is a custom [Home Assistant](https://www.home-assistant.io/) integration for [Modern Forms](https://www.modernforms.com/) smart fans, with added support for **Generation 4** fans (e.g. the Radiant 56″) that are **not supported by the built-in HA integration**.
 
 ## Why this custom integration?
